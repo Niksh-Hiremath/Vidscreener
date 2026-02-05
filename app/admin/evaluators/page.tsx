@@ -4,7 +4,7 @@ import BarChart from '@/components/charts/BarChart';
 import MainContent from '@/components/layout/MainContent';
 
 const evaluators = [
-  { id: '1', name: 'Michael Chen', email: 'michael.chen@example.com', projects: 3, reviewed: 147, avgTime: '8.5 mins', status: 'active' as const },
+  { id: '1', name: 'Daiwik Chilukuri', email: 'daiwik@example.com', projects: 3, reviewed: 147, avgTime: '8.5 mins', status: 'active' as const },
   { id: '2', name: 'Sarah Johnson', email: 'sarah.j@example.com', projects: 2, reviewed: 89, avgTime: '12.3 mins', status: 'active' as const },
   { id: '3', name: 'David Lee', email: 'david.lee@example.com', projects: 4, reviewed: 203, avgTime: '7.2 mins', status: 'active' as const },
   { id: '4', name: 'Emma Wilson', email: 'emma.w@example.com', projects: 2, reviewed: 76, avgTime: '10.1 mins', status: 'active' as const },

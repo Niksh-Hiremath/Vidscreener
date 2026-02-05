@@ -159,7 +159,7 @@ export default function ProjectDetailPage() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
-                { name: 'Michael Chen', reviewed: 45, assigned: 50 },
+                { name: 'Daiwik Chilukuri', reviewed: 45, assigned: 50 },
                 { name: 'Sarah Johnson', reviewed: 38, assigned: 40 },
                 { name: 'David Lee', reviewed: 52, assigned: 60 },
                 { name: 'Emma Wilson', reviewed: 30, assigned: 35 },

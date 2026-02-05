@@ -19,7 +19,7 @@ export default function AdminSettingsPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-6">
                 <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">SA</span>
+                  <span className="text-2xl font-bold text-white">NH</span>
                 </div>
                 <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
                   Change Photo
@@ -30,7 +30,7 @@ export default function AdminSettingsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                   <input
                     type="text"
-                    defaultValue="Sarah Admin"
+                    defaultValue="Niksh Hiremath"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>

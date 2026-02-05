@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function TopNav({ 
   title,
@@ -9,6 +10,10 @@ export default function TopNav({
   title?: string;
   breadcrumbs?: { label: string; href?: string }[];
 }) {
+  const pathname = usePathname();
+  const isAdmin = pathname?.startsWith('/admin');
+  const initials = isAdmin ? 'NH' : 'DC';
+  const bgColor = isAdmin ? 'from-indigo-500 to-indigo-600' : 'from-emerald-500 to-emerald-600';
   return (
     <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-8">
       <div>
@@ -40,7 +45,9 @@ export default function TopNav({
 
         {/* Profile Dropdown */}
         <button className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg">
-          <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full"></div>
+          <div className={`w-8 h-8 bg-gradient-to-br ${bgColor} rounded-full flex items-center justify-center`}>
+            <span className="text-xs font-bold text-white">{initials}</span>
+          </div>
           <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="m6 9 6 6 6-6" />
           </svg>

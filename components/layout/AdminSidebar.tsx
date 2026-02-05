@@ -107,11 +107,11 @@ export default function AdminSidebar() {
       <div className="p-4 border-t border-gray-200">
         <div className={`flex items-center gap-3 px-4 py-3 ${isCollapsed ? 'justify-center' : ''}`}>
           <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-sm font-semibold text-indigo-600">SA</span>
+            <span className="text-sm font-semibold text-indigo-600">NH</span>
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">Sarah Admin</p>
+              <p className="text-sm font-medium text-gray-900 truncate">Niksh Hiremath</p>
               <p className="text-xs text-gray-500 truncate">Administrator</p>
             </div>
           )}

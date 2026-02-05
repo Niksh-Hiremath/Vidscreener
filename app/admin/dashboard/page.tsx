@@ -13,7 +13,7 @@ export default function AdminDashboardPage() {
         <main className="flex-1 overflow-y-auto p-8">
           {/* Welcome */}
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Welcome back, Sarah</h2>
+            <h2 className="text-3xl font-bold text-gray-900">Welcome back, Niksh Hiremath</h2>
             <p className="text-gray-600 mt-1">Here's what's happening today</p>
           </div>
 
@@ -80,7 +80,7 @@ export default function AdminDashboardPage() {
                 {[
                   { msg: 'John Doe uploaded 24 videos', time: '2 hours ago' },
                   { msg: 'AI completed evaluation for Spring Batch', time: '3 hours ago' },
-                  { msg: 'Sarah reviewed flagged video', time: '5 hours ago' },
+                  { msg: 'Niksh reviewed flagged video', time: '5 hours ago' },
                   { msg: 'New evaluator added to team', time: '1 day ago' },
                 ].map((activity, i) => (
                   <div key={i} className="flex items-start gap-3">

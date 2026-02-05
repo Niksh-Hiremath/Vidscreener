@@ -19,7 +19,7 @@ export default function EvaluatorSettingsPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-6">
                 <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">MC</span>
+                  <span className="text-2xl font-bold text-white">DC</span>
                 </div>
                 <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
                   Change Photo
@@ -30,7 +30,7 @@ export default function EvaluatorSettingsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                   <input
                     type="text"
-                    defaultValue="Michael Chen"
+                    defaultValue="Daiwik Chilukuri"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
@@ -38,7 +38,7 @@ export default function EvaluatorSettingsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
                   <input
                     type="email"
-                    defaultValue="michael.chen@example.com"
+                    defaultValue="daiwik@example.com"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>

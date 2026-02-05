@@ -13,7 +13,7 @@ export default function EvaluatorDashboardPage() {
         <main className="flex-1 overflow-y-auto p-8">
           {/* Welcome */}
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Welcome back, Michael</h2>
+            <h2 className="text-3xl font-bold text-gray-900">Welcome back, Daiwik Chilukuri</h2>
             <p className="text-gray-600 mt-1">You have <span className="font-semibold text-emerald-600">18 videos</span> pending review</p>
           </div>
 
