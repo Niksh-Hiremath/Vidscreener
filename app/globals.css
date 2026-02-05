@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+:root {
+  /* Admin Theme Colors */
+  --admin-primary: #6366f1;
+  --admin-primary-hover: #4f46e5;
+  --admin-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  
+  /* Evaluator Theme Colors */
+  --evaluator-primary: #10b981;
+  --evaluator-primary-hover: #059669;
+  --evaluator-gradient: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%);
+  
+  /* Neutral Colors */
+  --background: #f8fafc;
+  --foreground: #1e293b;
+  --secondary: #64748b;
+  --card-bg: #ffffff;
+  
+  /* Status Colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+}
+
+@theme inline {
+  /* Admin theme colors */
+  --color-admin-primary: var(--admin-primary);
+  --color-admin-primary-hover: var(--admin-primary-hover);
+  
+  /* Evaluator theme colors */
+  --color-evaluator-primary: var(--evaluator-primary);
+  --color-evaluator-primary-hover: var(--evaluator-primary-hover);
+  
+  /* Neutral colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-secondary: var(--secondary);
+  --color-card: var(--card-bg);
+  
+  /* Status colors */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  
+  /* Typography */
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
