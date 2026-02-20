@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VidScreener
 
-## Getting Started
+**Automate Video Evaluation with AI**
 
-First, run the development server:
+VidScreener is an AI-assisted video screening platform designed to streamline and scale the process of reviewing video submissions. Whether it is for college applications, hiring processes, or content review, VidScreener combines the speed of artificial intelligence with the precision of human oversight to ensure fair and efficient evaluations.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Why it Exists
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Reviewing thousands of video submissions manually is a time-consuming, expensive, and bias-prone process. However, relying entirely on AI for these evaluations can lead to unfair decisions and lacks the nuance a human reviewer provides. 
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+VidScreener exists to bridge this gap. We provide a platform where AI performs the heavy lifting by conducting initial evaluations based on custom rubrics, while human evaluators focus their time on verifying AI decisions, especially in border-line or low-confidence cases. This hybrid approach significantly reduces the time and cost of video screening while maintaining high accuracy and fairness.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Key Features
 
-## Learn More
+- **AI-Powered Analysis:** Automatically evaluate videos using customizable rubrics. The AI provides detailed scoring and confidence metrics.
+- **Human In The Loop:** A dedicated workflow for human evaluators to audit, override, or approve AI decisions to ensure accuracy.
+- **Streamlined Workflow:** Efficiently bulk upload videos, create projects, and manage thousands of submissions in one place.
+- **Custom Rubrics:** Tailor the evaluation criteria to exactly match what you're looking for, whether it's communication skills, technical knowledge, or personality traits.
 
-To learn more about Next.js, take a look at the following resources:
+## Who is it for?
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+VidScreener is built around two primary types of users:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 1. Admins
+Admins manage the overarching process. They can:
+- Create and configure new evaluation projects
+- Define the custom rubrics and scoring criteria
+- Bulk upload video submissions
+- Manage and assign tasks to human evaluators
+- Monitor overall progress and project analytics
 
-## Deploy on Vercel
+### 2. Evaluators
+Evaluators are the human oversight component. They can:
+- Review the AI's initial evaluation and confidence scores
+- Watch the video submissions alongside the AI's feedback
+- Audit, verify, or override the AI decisions to ensure quality and fairness
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
