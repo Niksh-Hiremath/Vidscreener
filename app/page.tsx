@@ -55,6 +55,12 @@ export default function HomePage() {
           <Logo />
           <div className="flex items-center gap-4">
             <Link 
+              href="/submit/login" 
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Submit Project
+            </Link>
+            <Link 
               href="/admin/login" 
               className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
             >
@@ -125,6 +131,24 @@ export default function HomePage() {
             </p>
             <span className="inline-block px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium">
               Get Started as Evaluator
+            </span>
+          </Link>
+
+          <Link 
+            href="/submit/login"
+            className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border-2 border-transparent hover:border-pink-200"
+          >
+            <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center mb-4 mx-auto">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">For Submitters</h3>
+            <p className="text-gray-600 mb-4">
+              Submit videos, upload documents, track status
+            </p>
+            <span className="inline-block px-6 py-3 bg-pink-600 text-white rounded-lg font-medium">
+              Submit your Project
             </span>
           </Link>
         </div>

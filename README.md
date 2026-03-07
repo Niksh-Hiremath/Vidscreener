@@ -1,38 +1,74 @@
 # VidScreener
 
-**Automate Video Evaluation with AI**
-
-VidScreener is an AI-assisted video screening platform designed to streamline and scale the process of reviewing video submissions. Whether it is for college applications, hiring processes, or content review, VidScreener combines the speed of artificial intelligence with the precision of human oversight to ensure fair and efficient evaluations.
-
-## Why it Exists
-
-Reviewing thousands of video submissions manually is a time-consuming, expensive, and bias-prone process. However, relying entirely on AI for these evaluations can lead to unfair decisions and lacks the nuance a human reviewer provides. 
-
-VidScreener exists to bridge this gap. We provide a platform where AI performs the heavy lifting by conducting initial evaluations based on custom rubrics, while human evaluators focus their time on verifying AI decisions, especially in border-line or low-confidence cases. This hybrid approach significantly reduces the time and cost of video screening while maintaining high accuracy and fairness.
+VidScreener is an AI-assisted video screening platform designed to streamline admissions, hiring, and grant applications. It automates the initial review of large volumes of video submissions, scoring them based on custom rubrics and prioritizing candidate queues for human evaluators.
 
 ## Key Features
+- **Effortless Submissions**: Direct-to-object-storage uploads (via MinIO) allowing applicants to submit videos without creating accounts.
+- **AI-Powered Evaluation**: Automated scoring and flagging (e.g., duration limits, audio quality) against customizable organization rubrics.
+- **Evaluator Dashboard**: A focused interface for human reviewers, combining the video player, AI insights, applicant info, and scoring tools.
+- **Project Configuration**: Admin dashboard for creating tailored projects, managing evaluator assignments, and defining unique rubrics.
 
-- **AI-Powered Analysis:** Automatically evaluate videos using customizable rubrics. The AI provides detailed scoring and confidence metrics.
-- **Human In The Loop:** A dedicated workflow for human evaluators to audit, override, or approve AI decisions to ensure accuracy.
-- **Streamlined Workflow:** Efficiently bulk upload videos, create projects, and manage thousands of submissions in one place.
-- **Custom Rubrics:** Tailor the evaluation criteria to exactly match what you're looking for, whether it's communication skills, technical knowledge, or personality traits.
+## Technology Stack
+- **Frontend**: Next.js 14 (App Router), React, Tailwind CSS
+- **Backend**: Next.js API Routes (Server Components/Actions)
+- **Database**: Supabase PostgreSQL
+- **Authentication**: Supabase Auth (with Role-Based Access Control)
+- **Storage**: MinIO (S3-compatible Object Storage)
+- **AI Integration**: Designed for multimodal LLMs (e.g., Gemini 1.5 Pro)
 
-## Who is it for?
+## Getting Started
 
-VidScreener is built around two primary types of users:
+### Prerequisites
+- Node.js (v18+)
+- Postgres (Supabase CLI or hosted instance)
+- MinIO (via Docker)
 
-### 1. Admins
-Admins manage the overarching process. They can:
-- Create and configure new evaluation projects
-- Define the custom rubrics and scoring criteria
-- Bulk upload video submissions
-- Manage and assign tasks to human evaluators
-- Monitor overall progress and project analytics
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone <repository_url>
+   cd vidscreener
+   ```
 
-### 2. Evaluators
-Evaluators are the human oversight component. They can:
-- Review the AI's initial evaluation and confidence scores
-- Watch the video submissions alongside the AI's feedback
-- Audit, verify, or override the AI decisions to ensure quality and fairness
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
----
+3. Configure Environment Variables:
+   Copy `.env.example` to `.env.local` and fill in your keys:
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   
+   MINIO_ENDPOINT=localhost
+   MINIO_PORT=9000
+   MINIO_USE_SSL=false
+   MINIO_ACCESS_KEY=your_minio_access_key
+   MINIO_SECRET_KEY=your_minio_secret_key
+   MINIO_BUCKET_NAME=vidscreener
+   ```
+
+4. Run the infrastructure (MinIO):
+   ```bash
+   docker-compose up -d
+   ```
+
+5. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+You can now access the application at `http://localhost:3000`.
+
+## Architecture & Documentation
+For a deeper dive into the system design, AI prompting strategies, and product vision, please refer to the `docs/` folder:
+- [Product Pitch & Vision](docs/PRODUCT_PITCH.md)
+- [System Architecture](docs/ARCHITECTURE.md)
+- [AI Rubric Configuration](docs/PROMPT_RUBRICS.md)
+
+## Future Roadmap
+- Integration with major Application Tracking Systems (ATS).
+- Refined Bias Monitoring dashboards for admin oversight.
+- Live, AI-assisted video interview modes.

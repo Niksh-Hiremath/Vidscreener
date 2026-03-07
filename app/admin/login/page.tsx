@@ -1,7 +1,49 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Logo from '@/components/layout/Logo';
 
 export default function AdminLoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to login');
+      }
+
+      // Check role just in case, but middleware also handles this
+      if (data.session) {
+        router.push('/admin/dashboard');
+        router.refresh();
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
@@ -14,7 +56,13 @@ export default function AdminLoginPage() {
 
         {/* Login Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={handleLogin}>
+            {error && (
+              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200">
+                {error}
+              </div>
+            )}
+            
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -23,6 +71,9 @@ export default function AdminLoginPage() {
               <input
                 type="email"
                 id="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                 placeholder="admin@vidscreener.com"
               />
@@ -36,6 +87,9 @@ export default function AdminLoginPage() {
               <input
                 type="password"
                 id="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                 placeholder="••••••••"
               />
@@ -47,18 +101,19 @@ export default function AdminLoginPage() {
                 <input type="checkbox" className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
                 <span className="ml-2 text-sm text-gray-600">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+              <Link href="/admin/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
                 Forgot password?
-              </a>
+              </Link>
             </div>
 
             {/* Login Button */}
-            <Link
-              href="/admin/dashboard"
-              className="w-full block text-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg transition"
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full block text-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 text-white font-medium rounded-lg transition"
             >
-              Login
-            </Link>
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
           </form>
 
           {/* Divider */}
@@ -74,9 +129,9 @@ export default function AdminLoginPage() {
           {/* Sign Up Link */}
           <p className="text-center text-sm text-gray-600">
             Don't have an account?{' '}
-            <a href="#" className="text-indigo-600 hover:text-indigo-700 font-medium">
+            <Link href="/admin/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
               Sign up as Admin
-            </a>
+            </Link>
           </p>
         </div>
 

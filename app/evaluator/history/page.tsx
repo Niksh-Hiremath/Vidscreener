@@ -1,16 +1,33 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import EvaluatorSidebar from '@/components/layout/EvaluatorSidebar';
 import TopNav from '@/components/layout/TopNav';
 import MainContent from '@/components/layout/MainContent';
-
-const reviews = [
-  { id: '1', applicant: 'John Smith', applicantId: 'APP-2026-1234', project: 'Spring 2026 Admissions', date: '2026-02-05', aiScore: 82, myDecision: 'approved', duration: '4:32' },
-  { id: '2', applicant: 'Sarah Johnson', applicantId: 'APP-2026-1235', project: 'Spring 2026 Admissions', date: '2026-02-05', aiScore: 76, myDecision: 'approved', duration: '3:15' },
-  { id: '3', applicant: 'David Lee', applicantId: 'APP-2026-1236', project: 'Spring 2026 Admissions', date: '2026-02-04', aiScore: 68, myDecision: 'flagged', duration: '5:48' },
-  { id: '4', applicant: 'Emma Wilson', applicantId: 'APP-2026-1237', project: 'MBA Program 2026', date: '2026-02-04', aiScore: 91, myDecision: 'approved', duration: '3:45' },
-  { id: '5', applicant: 'James Brown', applicantId: 'APP-2026-1238', project: 'Spring 2026 Admissions', date: '2026-02-03', aiScore: 74, myDecision: 'override', duration: '4:12' },
-];
+import Link from 'next/link';
 
 export default function ReviewHistoryPage() {
+  const [historyItems, setHistoryItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchHistory() {
+      try {
+        const res = await fetch('/api/evaluators/me/assignments');
+        if (res.ok) {
+          const data = await res.json();
+          const completed = (data.assignments || []).filter((a: any) => a.status === 'completed');
+          setHistoryItems(completed);
+        }
+      } catch (e) {
+        console.error('Error fetching history:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHistory();
+  }, []);
+
   return (
     <div className="flex h-screen bg-gray-50">
       <EvaluatorSidebar />
@@ -36,145 +53,66 @@ export default function ReviewHistoryPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="text-sm font-medium text-gray-600 mb-1">Total Reviewed</div>
-              <div className="text-3xl font-bold text-gray-900">147</div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <div className="text-sm font-medium text-gray-600 mb-1">Approved</div>
-              <div className="text-3xl font-bold text-emerald-600">132</div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <div className="text-sm font-medium text-gray-600 mb-1">Flagged</div>
-              <div className="text-3xl font-bold text-red-600">9</div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <div className="text-sm font-medium text-gray-600 mb-1">Override Rate</div>
-              <div className="text-3xl font-bold text-gray-900">4%</div>
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <input
-                type="text"
-                placeholder="Search by applicant..."
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-              />
-              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
-                <option>All Projects</option>
-                <option>Spring 2026 Admissions</option>
-                <option>MBA Program 2026</option>
-              </select>
-              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
-                <option>All Decisions</option>
-                <option>Approved</option>
-                <option>Flagged</option>
-                <option>Override</option>
-              </select>
-              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
-                <option>Last 7 days</option>
-                <option>Last 30 days</option>
-                <option>Last 90 days</option>
-                <option>All time</option>
-              </select>
+              <div className="text-3xl font-bold text-gray-900">{historyItems.length}</div>
             </div>
           </div>
 
           {/* History Table */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Applicant
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Project
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Review Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    AI Score
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    My Decision
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {reviews.map((review) => (
-                  <tr key={review.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
-                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="m22 8-6 4 6 4V8Z" />
-                            <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{review.applicant}</p>
-                          <p className="text-sm text-gray-500">{review.applicantId}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{review.project}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{review.date}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        review.aiScore >= 80 ? 'bg-green-100 text-green-800' :
-                        review.aiScore >= 70 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {review.aiScore}/100
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        review.myDecision === 'approved' ? 'bg-green-100 text-green-800' :
-                        review.myDecision === 'flagged' ? 'bg-red-100 text-red-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
-                        {review.myDecision === 'approved' ? '✓ Approved' :
-                         review.myDecision === 'flagged' ? '⚠ Flagged' :
-                         '✏ Override'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">
-                        View Details
-                      </button>
-                    </td>
+          {loading ? (
+             <div className="text-gray-500">Loading history...</div>
+          ) : historyItems.length === 0 ? (
+             <div className="text-gray-500 p-8 text-center bg-white rounded-xl border border-gray-200 mt-4">
+               You haven't completed any reviews yet.
+             </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Applicant Video ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Project
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Review Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="mt-6 flex items-center justify-between">
-            <p className="text-sm text-gray-600">
-              Showing 1-5 of 147 reviews
-            </p>
-            <div className="flex gap-2">
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium">
-                Previous
-              </button>
-              <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium">
-                1
-              </button>
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium">
-                2
-              </button>
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium">
-                Next
-              </button>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {historyItems.map((review) => (
+                    <tr key={review.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
+                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path d="m22 8-6 4 6 4V8Z" />
+                              <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">ID: {review.video_id?.substring(0,8)}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{review.projects?.name}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{new Date(review.updated_at || review.created_at).toLocaleDateString()}</td>
+                      <td className="px-6 py-4">
+                        <Link href={`/evaluator/review/${review.id}`} className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">
+                          View Details
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          )}
+
         </main>
       </MainContent>
     </div>

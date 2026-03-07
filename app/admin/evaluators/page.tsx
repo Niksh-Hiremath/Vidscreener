@@ -1,23 +1,51 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import AdminSidebar from '@/components/layout/AdminSidebar';
 import TopNav from '@/components/layout/TopNav';
 import BarChart from '@/components/charts/BarChart';
 import MainContent from '@/components/layout/MainContent';
 
-const evaluators = [
-  { id: '1', name: 'Daiwik Chilukuri', email: 'daiwik@example.com', projects: 3, reviewed: 147, avgTime: '8.5 mins', status: 'active' as const },
-  { id: '2', name: 'Sarah Johnson', email: 'sarah.j@example.com', projects: 2, reviewed: 89, avgTime: '12.3 mins', status: 'active' as const },
-  { id: '3', name: 'David Lee', email: 'david.lee@example.com', projects: 4, reviewed: 203, avgTime: '7.2 mins', status: 'active' as const },
-  { id: '4', name: 'Emma Wilson', email: 'emma.w@example.com', projects: 2, reviewed: 76, avgTime: '10.1 mins', status: 'active' as const },
-  { id: '5', name: 'James Martinez', email: 'james.m@example.com', projects: 1, reviewed: 34, avgTime: '15.8 mins', status: 'inactive' as const },
-];
-
-// Performance chart data
-const performanceData = evaluators.map(e => ({
-  name: e.name.split(' ')[0], // First name only for chart
-  reviews: e.reviewed
-}));
-
 export default function EvaluatorsPage() {
+  const [evaluators, setEvaluators] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchEvaluators() {
+      try {
+        const res = await fetch('/api/evaluators');
+        if (res.ok) {
+          const data = await res.json();
+          // Map backend `users` structure to the UI structure
+          const formatted = (data.evaluators || []).map((e: any) => ({
+            id: e.id,
+            name: e.full_name || e.email.split('@')[0],
+            email: e.email,
+            projects: e.evaluator_assignments?.[0]?.count || 0,
+            reviewed: e.human_evaluations?.[0]?.count || 0,
+            avgTime: 'N/A', // Compute actual avg time if available in db
+            status: e.status || 'active'
+          }));
+          setEvaluators(formatted);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchEvaluators();
+  }, []);
+
+  const totalReviews = evaluators.reduce((acc, e) => acc + (e.reviewed || 0), 0);
+  const activeCount = evaluators.filter(e => e.status === 'active').length;
+
+  // Performance chart data
+  const performanceData = evaluators.map(e => ({
+    name: e.name.split(' ')[0], // First name only for chart
+    reviews: e.reviewed
+  }));
+
   return (
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar />
@@ -46,19 +74,19 @@ export default function EvaluatorsPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="text-sm font-medium text-gray-600 mb-1">Total Evaluators</div>
-              <div className="text-3xl font-bold text-gray-900">24</div>
+              <div className="text-3xl font-bold text-gray-900">{evaluators.length}</div>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="text-sm font-medium text-gray-600 mb-1">Active</div>
-              <div className="text-3xl font-bold text-emerald-600">21</div>
+              <div className="text-3xl font-bold text-emerald-600">{activeCount}</div>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="text-sm font-medium text-gray-600 mb-1">Total Reviews</div>
-              <div className="text-3xl font-bold text-gray-900">1,890</div>
+              <div className="text-3xl font-bold text-gray-900">{totalReviews}</div>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="text-sm font-medium text-gray-600 mb-1">Avg Review Time</div>
-              <div className="text-3xl font-bold text-gray-900">9.2<span className="text-lg font-normal text-gray-500"> mins</span></div>
+              <div className="text-3xl font-bold text-gray-900">-<span className="text-lg font-normal text-gray-500"> mins</span></div>
             </div>
           </div>
 
@@ -92,13 +120,13 @@ export default function EvaluatorsPage() {
                     Evaluator
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Projects
+                    Assigned Projects
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Videos Reviewed
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Avg Review Time
+                    Avg Time
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -109,46 +137,52 @@ export default function EvaluatorsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {evaluators.map((evaluator) => (
-                  <tr key={evaluator.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-semibold text-indigo-600">
-                            {evaluator.name.split(' ').map(n => n[0]).join('')}
-                          </span>
+                {loading ? (
+                  <tr><td colSpan={6} className="p-4 text-center text-gray-500">Loading evaluators...</td></tr>
+                ) : evaluators.length === 0 ? (
+                  <tr><td colSpan={6} className="p-4 text-center text-gray-500">No evaluators found.</td></tr>
+                ) : (
+                  evaluators.map((evaluator) => (
+                    <tr key={evaluator.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-semibold text-indigo-600">
+                              {evaluator.name.split(' ').map((n: string) => n[0]).join('')}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{evaluator.name}</p>
+                            <p className="text-sm text-gray-500">{evaluator.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{evaluator.name}</p>
-                          <p className="text-sm text-gray-500">{evaluator.email}</p>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{evaluator.projects}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{evaluator.reviewed}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{evaluator.avgTime}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                          evaluator.status === 'active' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {evaluator.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+                            View
+                          </button>
+                          <span className="text-gray-300">|</span>
+                          <button className="text-gray-600 hover:text-gray-700 text-sm font-medium">
+                            Edit
+                          </button>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{evaluator.projects}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{evaluator.reviewed}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{evaluator.avgTime}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        evaluator.status === 'active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {evaluator.status === 'active' ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
-                          View
-                        </button>
-                        <span className="text-gray-300">|</span>
-                        <button className="text-gray-600 hover:text-gray-700 text-sm font-medium">
-                          Edit
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
