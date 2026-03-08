@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServiceClient } from '@/lib/supabase';
 import { getSupabaseServerClient } from '@/utils/supabaseServerClient';
 
 // POST /api/videos/[id]/evaluate — AI Evaluation Trigger
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: videoId } = await params;
-  const supabase = getSupabaseServerClient(request, response);
+  const supabase = getSupabaseServerClient(request);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -29,7 +29,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (!rubric) return NextResponse.json({ error: 'No rubric for project' }, { status: 400 });
 
   // 2. STUB: Mock AI evaluation logic (replace with Gemini at mid-sem)
-  const mockScore = Math.floor(Math.random() * 20) + 70; // 70-90
+  const mockScore = Math.floor(Math.random() * 20) + 70;
 
   const { data: evaluation, error: evalError } = await serviceClient
     .from('ai_evaluations')

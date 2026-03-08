@@ -9,38 +9,30 @@ VidScreener is a modern, end-to-end video screening platform that combines the s
 ### Key Value Propositions
 1. **10x Faster Screening**: AI handles the initial pass, scoring candidates on predefined criteria (e.g., communication, relevance) and flagging issues (e.g., over time limit, poor audio).
 2. **Customizable Workflows**: Admins can define dynamic rubrics per project, ensuring the AI and human evaluators judge candidates exactly according to the organization's needs.
-3. **Frictionless Submission**: Candidates upload videos directly through a fast, branded portal without needing to create accounts.
-4. **Intelligent Review Queue**: Human evaluators don't start from scratch. They review the AI's detailed breakdown, chat with the AI for context, and can either approve the AI's score or override it with their own expertise.
-
-## Target Audience
-- **University Admissions**: Processing thousands of video essays for competitive programs.
-- **Corporate Recruiting**: Conducting initial behavioral screens at scale.
-- **Grant Foundations**: Reviewing video pitches for funding applications.
+3. **Frictionless Submission**: Candidates upload videos directly through a fast, branded portal. Submitter dashboards allow users to track multiple applications in one place.
+4. **Intelligent Review Queue**: Human evaluators don't start from scratch. They review the AI's detailed breakdown and can either approve the AI's score or override it with their own expertise.
 
 ## Core Features
+
 ### For Admins
 - **Interactive Dashboard**: Real-time analytics on submission volume, AI processing status, and evaluator performance.
-- **Project & Form Builder**: Create distinct projects (e.g., "Spring 2026 Admissions") and configure the submission forms and video requirements.
-- **Rubric Configuration**: Define exactly what the AI should look for (e.g., 30 points for Communication, 20 points for Content).
-- **Evaluator Management**: Invite team members and intelligently route assignments based on workload or expertise.
+- **Form Builder**: Create distinct projects and configure custom form fields (text, select, etc.) for deeper candidate insights.
+- **Rubric Configuration**: Define multi-criterion rubrics with individual weights and max points.
+- **Organizational Secret Keys**: Securely onboard team members without exposing public registration links.
 
 ### For Evaluators
-- **Prioritized Queue**: A smart inbox of assignments, highlighting candidates flagged by AI.
-- **AI-Assisted Review Interface**: A unified view featuring the video player, the applicant's info, and the AI's complete breakdown (scores and justifications).
-- **AI Chat Assistant**: Ask specific questions about a candidate's submission directly to the AI agent.
+- **Personalized Queue**: A focused dashboard showing pending assignments and urgent review flags.
+- **AI-Assisted Review Interface**: A unified view featuring the dual-video player, criteria breakdown, and real-time score adjustment.
+- **Performance Analytics**: Insight into personal review speed and scoring consistency.
 
-### For Applicants
-- **Simple Portal**: Enter a unique form ID and immediately record or upload a video.
-- **Direct-to-Storage Uploads**: Fast, secure uploads directly to object storage via presigned URLs.
-- **Real-time Status tracking**: Check the application status at any time.
+### For Applicants/Submitters
+- **Discovery Portal**: Browse available opportunities with a stunning card-based UI.
+- **Submission History**: A persistent dashboard to track the status of multiple video applications.
+- **Direct-to-Storage Uploads**: Optimized for performance with large video files.
 
 ## Technology Stack Highlight
-VidScreener is built for scale, performance, and AI readiness from day one:
-- **Next.js 14 & React**: App Router, Server Components, and sleek Tailwind CSS interfaces.
-- **Supabase (PostgreSQL)**: Robust relational data with Row Level Security (RLS) for secure multi-tenant architecture.
-- **MinIO Object Storage**: S3-compatible, high-performance video storage.
-
-## Future Vision (v2 & Beyond)
-- **Live Interview Mode**: Expand from asynchronous video screening to live, AI-assisted candidate interviews.
-- **Bias Detection**: Advanced AI monitoring to ensure scoring rubrics aren't disproportionately affecting certain demographic groups.
-- **Integrations**: Seamlessly sync candidate statuses with major ATS and CRM platforms (Greenhouse, Workday, Slate).
+VidScreener is built for scale, performance, and AI readiness:
+- **Next.js 16 & React**: App Router, Server Components, and premium Tailwind CSS interfaces.
+- **Supabase (PostgreSQL)**: Multi-tenant relational data with secure authentication.
+- **MinIO Object Storage**: High-performance, S3-compatible storage for massive video volumes.
+- **Multimodal AI**: Leverages state-of-the-art LLMs for deep video understanding and evaluation.

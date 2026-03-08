@@ -33,7 +33,7 @@ export default function SubmitterLoginPage() {
       }
 
       if (data.session) {
-        router.push('/submit');
+        router.push('/submit/dashboard');
         router.refresh();
       }
     } catch (err: any) {

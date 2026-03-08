@@ -20,11 +20,22 @@ export async function POST(request: Request) {
   // Fetch user role from profile table
   const { data: profile } = await supabase
     .from('users')
-    .select('role, full_name, organization_id')
+    .select('role, full_name, organization_id, avatar_url')
     .eq('id', data.user.id)
     .single();
 
-  // Set session cookie so SSR middleware can read it
+  // Fetch org name
+  let orgName = null;
+  if (profile?.organization_id) {
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('name')
+      .eq('id', profile.organization_id)
+      .single();
+    orgName = org?.name;
+  }
+
+  // Set session cookies
   const cookieStore = await cookies();
   cookieStore.set('sb-access-token', data.session.access_token, {
     httpOnly: true,
@@ -37,9 +48,15 @@ export async function POST(request: Request) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: 60 * 60 * 24 * 30,
     path: '/',
   });
+
+  // Determine redirect URL based on role
+  let redirectUrl = '/';
+  if (profile?.role === 'admin') redirectUrl = '/admin/dashboard';
+  else if (profile?.role === 'evaluator') redirectUrl = '/evaluator/dashboard';
+  else if (profile?.role === 'submitter') redirectUrl = '/submit/dashboard';
 
   return NextResponse.json({
     user: {
@@ -48,10 +65,13 @@ export async function POST(request: Request) {
       role: profile?.role,
       full_name: profile?.full_name,
       organization_id: profile?.organization_id,
+      organization_name: orgName,
+      avatar_url: profile?.avatar_url,
     },
     session: {
       access_token: data.session.access_token,
       expires_in: data.session.expires_in,
     },
+    redirectUrl,
   });
 }

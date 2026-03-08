@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import AdminSidebar from '@/components/layout/AdminSidebar';
+import SubmitterSidebar from '@/components/layout/SubmitterSidebar';
 import TopNav from '@/components/layout/TopNav';
 import MainContent from '@/components/layout/MainContent';
 import { useAuth } from '@/lib/AuthContext';
 
-export default function AdminSettingsPage() {
-  const { user, refreshUser } = useAuth();
-  const [saving, setSaving] = useState(false);
+export default function SubmitterSettingsPage() {
+  const { user } = useAuth();
   const [message, setMessage] = useState('');
 
   const initials = user?.full_name
@@ -17,7 +16,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <AdminSidebar />
+      <SubmitterSidebar />
       
       <MainContent>
         <TopNav title="Settings" />
@@ -36,12 +35,8 @@ export default function AdminSettingsPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Information</h3>
             <div className="space-y-4">
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-pink-500 to-rose-500 rounded-full flex items-center justify-center">
                   <span className="text-2xl font-bold text-white">{initials}</span>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">{user?.full_name || 'Loading...'}</p>
-                  <p className="text-sm text-gray-500">{user?.email || ''}</p>
                 </div>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
@@ -50,7 +45,7 @@ export default function AdminSettingsPage() {
                   <input
                     type="text"
                     value={user?.full_name || ''}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none bg-gray-50"
                     readOnly
                   />
                 </div>
@@ -59,7 +54,7 @@ export default function AdminSettingsPage() {
                   <input
                     type="email"
                     value={user?.email || ''}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none bg-gray-50"
                     readOnly
                   />
                 </div>
@@ -75,43 +70,23 @@ export default function AdminSettingsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Organization Name</label>
                 <p className="text-gray-900 font-medium">{user?.organization_name || 'N/A'}</p>
               </div>
-              {user?.org_secret_key && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Organization Invite Key</label>
-                  <div className="flex items-center gap-2">
-                    <code className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono text-gray-800 flex-1">{user.org_secret_key}</code>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(user.org_secret_key!);
-                        setMessage('Invite key copied to clipboard!');
-                        setTimeout(() => setMessage(''), 3000);
-                      }}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">Share this key with evaluators and submitters so they can join your organization during signup.</p>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Notifications */}
+          {/* Notification Preferences */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Notification Preferences</h3>
             <div className="space-y-3">
               {[
-                { label: 'Email notifications for new video uploads', checked: true },
-                { label: 'Email notifications when evaluators flag videos', checked: true },
-                { label: 'Daily summary reports', checked: false },
-                { label: 'Weekly analytics digest', checked: true },
+                { label: 'Email notifications for submission status updates', checked: true },
+                { label: 'Email notifications when videos are processed', checked: true },
+                { label: 'System updates and announcements', checked: true },
               ].map((pref, idx) => (
                 <label key={idx} className="flex items-center gap-3 cursor-pointer">
                   <input 
                     type="checkbox" 
                     defaultChecked={pref.checked}
-                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                    className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
                   />
                   <span className="text-sm text-gray-700">{pref.label}</span>
                 </label>

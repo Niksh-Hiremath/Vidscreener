@@ -21,7 +21,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Liquid background layers */}
-      <div 
+      <div
         className="absolute inset-0 transition-all duration-[800ms] ease-out"
         style={{
           background: `
@@ -46,169 +46,169 @@ export default function HomePage() {
           transform: 'scale(1.1)',
         }}
       />
-      
+
       {/* Content overlay */}
       <div className="relative z-10">
-      {/* Header */}
-      <header className="container mx-auto px-6 py-6">
-        <div className="flex items-center justify-between">
-          <Logo />
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/submit/login" 
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-            >
-              Submit Project
-            </Link>
-            <Link 
-              href="/admin/login" 
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-            >
-              Admin Login
-            </Link>
-            <Link 
-              href="/evaluator/login" 
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              Evaluator Login
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section className="container mx-auto px-6 py-20 text-center">
-        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-          Automate Video Evaluation
-          <br />
-          <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            with AI
-          </span>
-        </h1>
-        <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-          AI-powered video screening with human oversight. Perfect for college applications, hiring, and content review.
-        </p>
-
-        {/* CTA Cards */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-20">
-          <Link 
-            href="/admin/login"
-            className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border-2 border-transparent hover:border-indigo-200"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center mb-4 mx-auto">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
+        {/* Header */}
+        <header className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <Logo />
+            <div className="flex items-center gap-4">
+              <Link
+                href="/admin/login"
+                className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Admin Login
+              </Link>
+              <Link
+                href="/evaluator/login"
+                className="px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+              >
+                Evaluator Login
+              </Link>
+              <Link
+                href="/submit/login"
+                className="px-4 py-2 text-sm font-medium bg-pink-600 text-white rounded-lg hover:bg-pink-700"
+              >
+                Submit Project
+              </Link>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">For Admins</h3>
-            <p className="text-gray-600 mb-4">
-              Create projects, upload videos, manage evaluators
-            </p>
-            <span className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium">
-              Get Started as Admin
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <section className="container mx-auto px-6 py-20 text-center">
+          <h1 className="pt-15 text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            Automate Video Evaluation
+            <br />
+            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              with AI
             </span>
-          </Link>
+          </h1>
+          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
+            AI-powered video screening with human oversight. Perfect for college applications, hiring, and content review.
+          </p>
 
-          <Link 
-            href="/evaluator/login"
-            className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border-2 border-transparent hover:border-emerald-200"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-lg flex items-center justify-center mb-4 mx-auto">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path d="m3 17 2 2 4-4" />
-                <path d="m3 7 2 2 4-4" />
-                <path d="M13 6h8" />
-                <path d="M13 12h8" />
-                <path d="M13 18h8" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">For Evaluators</h3>
-            <p className="text-gray-600 mb-4">
-              Review AI evaluations, ensure quality
-            </p>
-            <span className="inline-block px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium">
-              Get Started as Evaluator
-            </span>
-          </Link>
-
-          <Link 
-            href="/submit/login"
-            className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border-2 border-transparent hover:border-pink-200"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center mb-4 mx-auto">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">For Submitters</h3>
-            <p className="text-gray-600 mb-4">
-              Submit videos, upload documents, track status
-            </p>
-            <span className="inline-block px-6 py-3 bg-pink-600 text-white rounded-lg font-medium">
-              Submit your Project
-            </span>
-          </Link>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="container mx-auto px-6 py-16">
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">AI-Powered Analysis</h3>
-            <p className="text-gray-600">
-              Automatic evaluation using custom rubrics with confidence scoring
-            </p>
-          </div>
-
-          <div className="text-center">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Human Oversight</h3>
-            <p className="text-gray-600">
-              Evaluators audit AI decisions to ensure accuracy and fairness
-            </p>
-          </div>
-
-          <div className="text-center">
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Streamlined Workflow</h3>
-            <p className="text-gray-600">
-              Bulk upload and manage thousands of videos efficiently
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="container mx-auto px-6 py-8 mt-20 border-t border-gray-200">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-600">© 2026 VidScreener. All rights reserved.</p>
-          <div className="flex gap-6">
-            <Link href="/help" className="text-sm text-gray-600 hover:text-gray-900">
-              Help Center
+          {/* CTA Cards */}
+          <div className="pt-20 grid md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-20">
+            <Link
+              href="/admin/login"
+              className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border-2 border-transparent hover:border-indigo-200"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">For Admins</h3>
+              <p className="text-gray-600 mb-4">
+                Create projects, upload videos, manage evaluators
+              </p>
+              <span className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium">
+                Get Started as Admin
+              </span>
             </Link>
-            <Link href="/support" className="text-sm text-gray-600 hover:text-gray-900">
-              Contact Support
+
+            <Link
+              href="/evaluator/login"
+              className="flex flex-col bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border-2 border-transparent hover:border-emerald-200"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="m3 17 2 2 4-4" />
+                  <path d="m3 7 2 2 4-4" />
+                  <path d="M13 6h8" />
+                  <path d="M13 12h8" />
+                  <path d="M13 18h8" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">For Evaluators</h3>
+              <p className="text-gray-600 mb-4 flex-grow">
+                Review AI evaluations, ensure quality
+              </p>
+              <span className="mx-auto inline-block px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium">
+                Get Started as Evaluator
+              </span>
+            </Link>
+
+            <Link
+              href="/submit/login"
+              className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border-2 border-transparent hover:border-pink-200"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">For Submitters</h3>
+              <p className="text-gray-600 mb-4">
+                Submit videos, upload documents, track status
+              </p>
+              <span className="inline-block px-6 py-3 bg-pink-600 text-white rounded-lg font-medium">
+                Submit your Project
+              </span>
             </Link>
           </div>
-        </div>
-      </footer>
+        </section>
+
+        {/* Features */}
+        <section className="container mx-auto px-6 py-16">
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">AI-Powered Analysis</h3>
+              <p className="text-gray-600">
+                Automatic evaluation using custom rubrics with confidence scoring
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Human Oversight</h3>
+              <p className="text-gray-600">
+                Evaluators audit AI decisions to ensure accuracy and fairness
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Streamlined Workflow</h3>
+              <p className="text-gray-600">
+                Bulk upload and manage thousands of videos efficiently
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="container mx-auto px-6 py-8 mt-20 border-t border-gray-200">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-gray-600">© 2026 VidScreener. All rights reserved.</p>
+            <div className="flex gap-6">
+              <Link href="/help" className="text-sm text-gray-600 hover:text-gray-900">
+                Help Center
+              </Link>
+              <Link href="/support" className="text-sm text-gray-600 hover:text-gray-900">
+                Contact Support
+              </Link>
+            </div>
+          </div>
+        </footer>
       </div> {/* End content overlay */}
     </div>
   );

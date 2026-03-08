@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation';
 import Logo from './Logo';
 import { SIDEBAR_ITEMS_ADMIN } from '@/lib/constants';
 import { useSidebar } from '@/lib/SidebarContext';
+import { useAuth } from '@/lib/AuthContext';
 
-// Simple icon components (you can replace with a library like lucide-react later)
 const iconMap: Record<string, React.ReactNode> = {
   LayoutDashboard: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -51,12 +51,22 @@ const iconMap: Record<string, React.ReactNode> = {
   ),
 };
 
+function getInitials(name: string | undefined | null): string {
+  if (!name) return '?';
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
 export default function AdminSidebar() {
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const { user, logout, loading } = useAuth();
+
+  const initials = getInitials(user?.full_name);
+  const displayName = loading ? 'Loading...' : (user?.full_name || 'Admin');
+  const orgName = loading ? '...' : (user?.organization_name || 'Organization');
 
   return (
-    <aside className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+    <aside className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 flex flex-col transition-all duration-300 z-30 ${isCollapsed ? 'w-20' : 'w-64'}`}>
       {/* Logo */}
       <div className="p-6 border-b border-gray-200 flex items-center justify-between">
         {!isCollapsed && <Logo href="/admin/dashboard" />}
@@ -103,20 +113,32 @@ export default function AdminSidebar() {
         })}
       </nav>
 
-      {/* User Profile */}
+      {/* User Profile & Logout */}
       <div className="p-4 border-t border-gray-200">
         <div className={`flex items-center gap-3 px-4 py-3 ${isCollapsed ? 'justify-center' : ''}`}>
           <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-sm font-semibold text-indigo-600">NH</span>
+            <span className="text-sm font-semibold text-indigo-600">{initials}</span>
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">Niksh Hiremath</p>
-              <p className="text-xs text-gray-500 truncate">Administrator</p>
+              <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
+              <p className="text-xs text-gray-500 truncate">{orgName}</p>
             </div>
           )}
         </div>
         
+        {/* Logout Button */}
+        <button
+          onClick={logout}
+          className={`w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors ${isCollapsed ? 'justify-center' : ''}`}
+          title={isCollapsed ? 'Logout' : ''}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          {!isCollapsed && 'Logout'}
+        </button>
+
         {/* Help & Support Links */}
         {!isCollapsed && (
           <div className="mt-2 pt-2 border-t border-gray-200 flex flex-col gap-1">

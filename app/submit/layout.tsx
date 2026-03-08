@@ -1,8 +1,8 @@
-import { SidebarProvider } from '@/lib/SidebarContext';
 import { AuthProvider } from '@/lib/AuthContext';
+import { SidebarProvider } from '@/lib/SidebarContext';
 import { ReactNode } from 'react';
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default function SubmitLayout({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
       <SidebarProvider>{children}</SidebarProvider>

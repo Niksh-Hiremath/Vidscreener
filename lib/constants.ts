@@ -17,6 +17,13 @@ export const SIDEBAR_ITEMS_EVALUATOR = [
   { id: 'settings', label: 'Settings', href: '/evaluator/settings', icon: 'Settings' },
 ];
 
+export const SIDEBAR_ITEMS_SUBMITTER = [
+  { id: 'dashboard', label: 'Dashboard', href: '/submit/dashboard', icon: 'LayoutDashboard' },
+  { id: 'submissions', label: 'View Submissions', href: '/submit/submissions', icon: 'ListChecks' },
+  { id: 'new-submission', label: 'New Submission', href: '/submit/new', icon: 'FolderKanban' },
+  { id: 'settings', label: 'Settings', href: '/submit/settings', icon: 'Settings' },
+];
+
 export const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-800',
   approved: 'bg-green-100 text-green-800',

@@ -1,21 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/utils/supabaseServerClient';
 import { generatePlaybackUrl } from '@/lib/minio';
 
 // GET /api/videos/[id]/play-url
-export async function GET(request: Request, response: Response, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = getSupabaseServerClient(request, response);
-  const { data: { session } } = await supabase.auth.getSession();
+  const supabase = getSupabaseServerClient(request);
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Fetch the video record to get the minio object name
   const { data: video, error } = await supabase
     .from('videos')
-    .select('storage_path')
+    .select('minio_object_key')
     .eq('id', id)
     .single();
 
@@ -24,9 +23,7 @@ export async function GET(request: Request, response: Response, { params }: { pa
   }
 
   try {
-    // Generate a presigned GET URL valid for 1 hour (3600 seconds)
-    const presignedUrl = await generatePlaybackUrl(video.storage_path, 3600);
-
+    const presignedUrl = await generatePlaybackUrl(video.minio_object_key, 3600);
     return NextResponse.json({ url: presignedUrl });
   } catch (err: any) {
     console.error('Error generating presigned URL:', err);

@@ -2,6 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/AuthContext';
+
+function getInitials(name: string | undefined | null): string {
+  if (!name) return '?';
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+}
 
 export default function TopNav({ 
   title,
@@ -11,9 +17,12 @@ export default function TopNav({
   breadcrumbs?: { label: string; href?: string }[];
 }) {
   const pathname = usePathname();
+  const { user, loading } = useAuth();
   const isAdmin = pathname?.startsWith('/admin');
-  const initials = isAdmin ? 'NH' : 'DC';
-  const bgColor = isAdmin ? 'from-indigo-500 to-indigo-600' : 'from-emerald-500 to-emerald-600';
+  const isSubmitter = pathname?.startsWith('/submit');
+  const initials = getInitials(user?.full_name);
+  const bgColor = isAdmin ? 'from-indigo-500 to-indigo-600' : isSubmitter ? 'from-pink-500 to-pink-600' : 'from-emerald-500 to-emerald-600';
+  
   return (
     <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-8">
       <div>
@@ -22,9 +31,15 @@ export default function TopNav({
             {breadcrumbs.map((crumb, index) => (
               <span key={index} className="flex items-center">
                 {index > 0 && <span className="mx-2">/</span>}
-                <span className={index === breadcrumbs.length - 1 ? 'text-gray-900 font-medium' : ''}>
-                  {crumb.label}
-                </span>
+                {crumb.href ? (
+                  <Link href={crumb.href} className="hover:text-gray-700 transition-colors">
+                    {crumb.label}
+                  </Link>
+                ) : (
+                  <span className={index === breadcrumbs.length - 1 ? 'text-gray-900 font-medium' : ''}>
+                    {crumb.label}
+                  </span>
+                )}
               </span>
             ))}
           </nav>
@@ -35,23 +50,22 @@ export default function TopNav({
 
       <div className="flex items-center gap-4">
         {/* Notifications */}
-        <Link href="/notifications" className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+        <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" strokeWidth="2" />
           </svg>
-          {/* Notification Badge */}
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-        </Link>
+        </button>
 
-        {/* Profile Dropdown */}
-        <button className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg">
+        {/* User info */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600 hidden md:block">
+            {loading ? 'Loading...' : (user?.full_name || '')}
+          </span>
           <div className={`w-8 h-8 bg-gradient-to-br ${bgColor} rounded-full flex items-center justify-center`}>
             <span className="text-xs font-bold text-white">{initials}</span>
           </div>
-          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="m6 9 6 6 6-6" />
-          </svg>
-        </button>
+        </div>
       </div>
     </header>
   );

@@ -1,12 +1,22 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServiceClient } from '@/lib/supabase';
+import { cookies } from 'next/headers';
 
 // POST /api/forms/[id]/submit (Publicly accessible form submission)
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: formId } = await params;
   const { submitter_name, submitter_email, responses, video_id } = await request.json();
 
   const serviceClient = createSupabaseServiceClient();
+
+  // Check if user is authenticated  
+  let submittedBy: string | null = null;
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get('sb-access-token')?.value;
+  if (accessToken) {
+    const { data: { user } } = await serviceClient.auth.getUser(accessToken);
+    if (user) submittedBy = user.id;
+  }
 
   // 1. Get the form to find project_id
   const { data: form, error: formError } = await serviceClient
@@ -25,6 +35,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       project_id: form.project_id,
       submitter_name,
       submitter_email,
+      submitted_by: submittedBy,
     })
     .select()
     .single();
@@ -33,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   // 3. Save field responses
   if (responses && Array.isArray(responses)) {
-    const responseRows = responses.map((r) => ({
+    const responseRows = responses.map((r: any) => ({
       submission_id: submission.id,
       field_id: r.field_id,
       response_text: r.response_text || null,

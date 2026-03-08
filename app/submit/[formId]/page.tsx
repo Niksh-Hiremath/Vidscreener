@@ -20,6 +20,22 @@ export default function SubmissionFormPage() {
 
   useEffect(() => {
     async function fetchForm() {
+      if (formId.startsWith('demo-')) {
+        setFormConfig({
+          id: formId,
+          title: 'Demo Internship Application',
+          instructions: 'This is a demo form. Please fill out the details and upload a sample video to see the submission flow.',
+          requires_video: true,
+          project_id: 'demo-project',
+          projects: { organization_id: 'demo-org' },
+          form_fields: [
+            { id: 'f1', label: 'Why do you want to join?', field_type: 'textarea', is_required: true, order_index: 0 },
+            { id: 'f2', label: 'Years of Experience', field_type: 'select', options: ['0-1', '2-5', '5+'], is_required: true, order_index: 1 }
+          ]
+        });
+        setLoading(false);
+        return;
+      }
       try {
         const res = await fetch(`/api/forms/${formId}`);
         if (!res.ok) throw new Error('Form not found or inactive');
@@ -27,7 +43,7 @@ export default function SubmissionFormPage() {
         setFormConfig(data.form);
       } catch (e) {
         alert('Could not load form.');
-        router.push('/submit');
+        router.push('/submit/new');
       } finally {
         setLoading(false);
       }

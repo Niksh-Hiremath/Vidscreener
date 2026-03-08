@@ -3,8 +3,8 @@ import { createSupabaseServiceClient } from '@/lib/supabase';
 import { getSupabaseServerClient } from '@/utils/supabaseServerClient';
 
 // GET /api/projects — list projects for the authenticated org
-export async function GET(request: NextRequest, response: NextResponse) {
-  const supabase = getSupabaseServerClient(request, response);
+export async function GET(request: NextRequest) {
+  const supabase = getSupabaseServerClient(request);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -28,8 +28,8 @@ export async function GET(request: NextRequest, response: NextResponse) {
 }
 
 // POST /api/projects — create a new project
-export async function POST(request: NextRequest, response: NextResponse) {
-  const supabase = await getSupabaseServerClient(request, response);
+export async function POST(request: NextRequest) {
+  const supabase = getSupabaseServerClient(request);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

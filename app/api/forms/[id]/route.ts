@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase';
+import { createSupabaseServiceClient } from '@/lib/supabase';
 
 // GET /api/forms/[id] (Publicly accessible for submitters filling the form)
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
