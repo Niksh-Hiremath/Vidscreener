@@ -8,17 +8,25 @@
     "start": "next start"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie": "^1.1.1",
+    "cookies": "^0.9.1",
     "drizzle-orm": "^0.45.1",
+    "jose": "^6.2.1",
+    "jsonwebtoken": "^9.0.3",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/cookie": "^0.6.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "drizzle-kit": "^0.31.9",
+    "better-sqlite3": "^12.8.0",
+    "drizzle-kit": "^0.18.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
