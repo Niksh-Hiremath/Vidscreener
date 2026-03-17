@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const WORKER_API_BASE_URL = process.env.NEXT_PUBLIC_WORKER_API_BASE_URL || process.env.WORKER_API_BASE_URL || "http://localhost:8787";
 
@@ -34,6 +35,7 @@ export default function LoginPage() {
 
   return (
     <div className="max-w-md mx-auto mt-20 p-6 border rounded shadow">
+      <Link href="/dashboard" className="text-blue-600 underline mb-4 inline-block">Dashboard</Link>
       <h1 className="text-2xl mb-4">Login</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input

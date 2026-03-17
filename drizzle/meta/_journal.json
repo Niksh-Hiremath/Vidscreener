@@ -15,6 +15,20 @@
       "when": 1773700222223,
       "tag": "0001_nappy_firestar",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773725987843,
+      "tag": "0002_old_kulan_gath",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1773727146390,
+      "tag": "0003_redundant_goblin_queen",
+      "breakpoints": true
     }
   ]
 }
