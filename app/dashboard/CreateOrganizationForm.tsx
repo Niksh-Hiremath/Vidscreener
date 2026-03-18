@@ -13,7 +13,10 @@ export default function CreateOrganizationForm() {
     setError("");
     setSuccess("");
     try {
-      const baseUrl = process.env.WORKER_API_BASE_URL || "http://localhost:8787";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_WORKER_API_BASE_URL ||
+        process.env.WORKER_API_BASE_URL ||
+        "http://localhost:8787";
       const res = await fetch(`${baseUrl}/api/organization/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -33,12 +36,12 @@ export default function CreateOrganizationForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mt-4">
-      <label className="block mb-2">Organization Name</label>
+      <label className="block mb-2 text-zinc-300">Organization Name</label>
       <input
         type="text"
         value={name}
         onChange={e => setName(e.target.value)}
-        className="border px-2 py-1 rounded w-full mb-2"
+        className="border border-zinc-700 bg-zinc-800 px-2 py-1 rounded w-full mb-2"
         required
       />
       <button
@@ -48,7 +51,7 @@ export default function CreateOrganizationForm() {
       >
         {loading ? "Creating..." : "Create Organization"}
       </button>
-      {error && <div className="text-red-600 mt-2">{error}</div>}
+      {error && <div className="text-red-400 mt-2">{error}</div>}
       {success && <div className="text-green-600 mt-2">{success}</div>}
     </form>
   );

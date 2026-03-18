@@ -1,55 +1,31 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import AdminNoOrgSection from "./AdminNoOrgSection";
-
-async function getUserAndOrg() {
-  const baseUrl = process.env.WORKER_API_BASE_URL || "http://localhost:8787";
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
-  const headers: Record<string, string> = {};
-  if (token) headers.Cookie = `token=${token}`;
-  const res = await fetch(`${baseUrl}/api/user/profile`, {
-    method: "GET",
-    headers,
-  });
-  if (!res.ok) return { user: null, organization: null };
-  const data = await res.json();
-  return { user: data.user, organization: data.organization };
-}
+import Link from "next/link";
+import { getDashboardContext } from "./data";
 
 export default async function DashboardPage() {
-  const { user, organization } = await getUserAndOrg();
-  if (!user) {
-    redirect('/login');
-  }
+  const { user } = await getDashboardContext();
+  if (!user) return null;
 
-  if (user.role !== "admin") {
+  if (user.role === "reviewer" || user.role === "evaluator") {
     return (
-      <div className="max-w-xl mx-auto mt-20 p-6 border rounded shadow">
-        <h1 className="text-2xl mb-4">Dashboard</h1>
-        <div>Welcome, <b>{user?.name || user?.email}</b>!</div>
-        <div>Role: <b>{user?.role}</b></div>
-        <div className="mt-6 text-gray-500">This dashboard is for admins. Your dashboard will be available soon.</div>
+      <div className="rounded border border-zinc-800 bg-zinc-900 p-6 min-h-[320px]">
+        <h1 className="text-2xl font-semibold">Evaluator Dashboard</h1>
+        <div className="text-zinc-400 mt-2">Use the sections below to start reviewing videos.</div>
+        <div className="mt-4 flex gap-3">
+          <Link href="/dashboard/projects" className="bg-blue-600 text-white px-3 py-2 rounded">
+            My Projects
+          </Link>
+          <Link href="/dashboard/review-queue" className="bg-zinc-700 text-white px-3 py-2 rounded">
+            Review Queue
+          </Link>
+        </div>
       </div>
     );
   }
 
-  // Admin logic
-  if (!user.organizationId) {
-    // Not associated with any org
-    return <AdminNoOrgSection user={user} />;
-  }
-
-  // Associated with org: show org info
   return (
-    <div className="max-w-xl mx-auto mt-20 p-6 border rounded shadow">
-      <h1 className="text-2xl mb-4">Admin Dashboard</h1>
-      <div>Welcome, <b>{user?.name || user?.email}</b>!</div>
-      <div className="mt-4">
-        <div className="font-semibold">Organization Info</div>
-        <div>Name: <b>{organization?.name}</b></div>
-        <div>ID: <b>{organization?.id}</b></div>
-      </div>
+    <div className="rounded border border-zinc-800 bg-zinc-900 p-6 min-h-[320px]">
+      <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <div className="text-zinc-400 mt-2">No widgets added yet.</div>
     </div>
   );
 }

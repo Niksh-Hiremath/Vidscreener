@@ -34,8 +34,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 border rounded shadow">
-      <Link href="/dashboard" className="text-blue-600 underline mb-4 inline-block">Dashboard</Link>
+    <div className="max-w-md mx-auto mt-20 p-6 border border-zinc-800 bg-zinc-900 rounded shadow text-zinc-100">
+      <Link href="/dashboard" className="text-blue-400 underline mb-4 inline-block">Dashboard</Link>
       <h1 className="text-2xl mb-4">Login</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
@@ -43,7 +43,7 @@ export default function LoginPage() {
           placeholder="Email"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          className="border p-2 rounded"
+          className="border border-zinc-700 bg-zinc-800 p-2 rounded"
           required
         />
         <input
@@ -51,14 +51,14 @@ export default function LoginPage() {
           placeholder="Password"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          className="border p-2 rounded"
+          className="border border-zinc-700 bg-zinc-800 p-2 rounded"
           required
         />
-        {error && <div className="text-red-500">{error}</div>}
+        {error && <div className="text-red-400">{error}</div>}
         <button type="submit" className="bg-blue-600 text-white p-2 rounded">Login</button>
       </form>
-      <div className="mt-4 text-sm">
-        Don&apos;t have an account? <a href="/register" className="text-blue-600 underline">Register</a>
+      <div className="mt-4 text-sm text-zinc-300">
+        Don&apos;t have an account? <a href="/register" className="text-blue-400 underline">Register</a>
       </div>
     </div>
   );

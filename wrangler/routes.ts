@@ -1,18 +1,55 @@
 import { getCorsHeaders } from "./utils/cors";
 import * as schema from "../db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { SignJWT } from "jose";
 import { getUserWithRole } from "./utils/user";
 
+const ALLOWED_ATTACHMENT_TYPES = ["images", "pdf", "video", "zip"] as const;
+type AttachmentType = (typeof ALLOWED_ATTACHMENT_TYPES)[number];
+
+function sanitizeUser(user: any) {
+  const { password, ...safeUser } = user;
+  return safeUser;
+}
+
+function json(data: unknown, status: number, corsHeaders: Record<string, string>) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function getAdminRoleId(db: any) {
+  const roleArr = await db.select().from(schema.roles).where(eq(schema.roles.name, "admin"));
+  if (roleArr.length === 0) {
+    throw new Error("Admin role is missing. Seed roles first.");
+  }
+  return roleArr[0].id;
+}
+
+async function getOrganizationById(db: any, organizationId: number) {
+  const orgArr = await db.select().from(schema.organizations).where(eq(schema.organizations.id, organizationId));
+  return orgArr[0] || null;
+}
+
+async function getOrganizationAdmins(db: any, organizationId: number) {
+  const adminRoleId = await getAdminRoleId(db);
+  const admins = await db
+    .select()
+    .from(schema.users)
+    .where(and(eq(schema.users.organizationId, organizationId), eq(schema.users.roleId, adminRoleId)));
+  return admins;
+}
+
 export async function handleLogout(req: Request, env: Env, db: any) {
-  const corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req, env);
   return new Response(JSON.stringify({ success: true }), {
     status: 200,
     headers: {
       ...corsHeaders,
       "Set-Cookie": "token=; Path=/; HttpOnly; Max-Age=0",
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
   });
 }
@@ -20,42 +57,42 @@ export async function handleLogout(req: Request, env: Env, db: any) {
 export async function handleRegister(req: Request, env: Env, db: any) {
   try {
     const { email, password, name, phone, roleName } = await req.json();
-    const corsHeaders = getCorsHeaders(req);
+    const corsHeaders = getCorsHeaders(req, env);
     if (!email || !password || !name || !roleName) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "Missing required fields" }, 400, corsHeaders);
     }
     const existing = await db.select().from(schema.users).where(eq(schema.users.email, email));
     if (existing.length > 0) {
-      return new Response(JSON.stringify({ error: "User already exists" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "User already exists" }, 409, corsHeaders);
     }
     const role = await db.select().from(schema.roles).where(eq(schema.roles.name, roleName.toLowerCase()));
     if (role.length === 0) {
-      return new Response(JSON.stringify({ error: "Invalid role" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "Invalid role" }, 400, corsHeaders);
     }
     const hashed = await bcrypt.hash(password, 10);
     await db.insert(schema.users).values({ email, password: hashed, name, phone, roleId: role[0].id });
-    return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return json({ success: true }, 200, corsHeaders);
   } catch (e) {
-    const corsHeaders = getCorsHeaders(req);
-    return new Response(JSON.stringify({ error: "Registration failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const corsHeaders = getCorsHeaders(req, env);
+    return json({ error: "Registration failed" }, 500, corsHeaders);
   }
 }
 
 export async function handleLogin(req: Request, env: Env, db: any) {
   try {
     const { email, password } = await req.json();
-    const corsHeaders = getCorsHeaders(req);
+    const corsHeaders = getCorsHeaders(req, env);
     if (!email || !password) {
-      return new Response(JSON.stringify({ error: "Missing credentials" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "Missing credentials" }, 400, corsHeaders);
     }
     const userArr = await db.select().from(schema.users).where(eq(schema.users.email, email));
     if (userArr.length === 0) {
-      return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "Invalid credentials" }, 401, corsHeaders);
     }
     const user = userArr[0];
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-      return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "Invalid credentials" }, 401, corsHeaders);
     }
     const roleArr = await db.select().from(schema.roles).where(eq(schema.roles.id, user.roleId));
     const role = roleArr[0]?.name || "Unknown";
@@ -68,30 +105,28 @@ export async function handleLogin(req: Request, env: Env, db: any) {
       headers: {
         ...corsHeaders,
         "Set-Cookie": `token=${jwt}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 7}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
     });
   } catch (e) {
-    const corsHeaders = getCorsHeaders(req);
-    return new Response(JSON.stringify({ error: "Login failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const corsHeaders = getCorsHeaders(req, env);
+    return json({ error: "Login failed" }, 500, corsHeaders);
   }
 }
 
 export async function handleCreateOrganization(req: Request, env: Env, db: any) {
-  const corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req, env);
   try {
-    // Auth: get user from JWT cookie
-    const { getUserWithRole } = await import("./utils/user");
     const user = await getUserWithRole(req, env, db);
     if (!user || user.role !== "admin") {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
     }
     if (user.organizationId) {
-      return new Response(JSON.stringify({ error: "Already in an organization" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "Already in an organization" }, 400, corsHeaders);
     }
     const { name } = await req.json();
     if (!name || typeof name !== "string") {
-      return new Response(JSON.stringify({ error: "Organization name required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "Organization name required" }, 400, corsHeaders);
     }
     let org;
     try {
@@ -102,31 +137,1725 @@ export async function handleCreateOrganization(req: Request, env: Env, db: any) 
       let message = "Internal server error";
       if (e instanceof Error) message = e.message;
       console.error("/api/organization/create error:", e);
-      return new Response(JSON.stringify({ error: message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: message }, 500, corsHeaders);
     }
-    return new Response(JSON.stringify({ organization: org }), { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return json({ organization: org }, 201, corsHeaders);
   } catch (e) {
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    return json({ error: "Internal server error" }, 500, corsHeaders);
   }
 }
 
 export async function handleUserProfile(req: Request, env: Env, db: any) {
-  const corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req, env);
   try {
     const user = await getUserWithRole(req, env, db);
     if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
     }
     let org = null;
+    let isSuperAdmin = false;
     if (user.organizationId) {
       const orgArr = await db.select().from(schema.organizations).where(eq(schema.organizations.id, user.organizationId));
       if (orgArr.length > 0) org = orgArr[0];
+      if (org) isSuperAdmin = org.createdBy === user.id;
     }
-    return new Response(JSON.stringify({ user, organization: org }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return json({ user: sanitizeUser(user), organization: org, isSuperAdmin }, 200, corsHeaders);
   } catch (e) {
     let message = "Internal server error";
     if (e instanceof Error) message = e.message;
     console.error("/api/user/profile error:", e);
-    return new Response(JSON.stringify({ error: message }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleOrganizationAdmins(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const organization = await getOrganizationById(db, user.organizationId);
+    if (!organization) {
+      return json({ error: "Organization not found" }, 404, corsHeaders);
+    }
+
+    const admins = await getOrganizationAdmins(db, organization.id);
+    const isSuperAdmin = organization.createdBy === user.id;
+
+    return json(
+      {
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          superAdminUserId: organization.createdBy,
+        },
+        isSuperAdmin,
+        admins: admins.map((admin: any) => ({
+          ...sanitizeUser(admin),
+          role: "admin",
+          isSuperAdmin: admin.id === organization.createdBy,
+        })),
+      },
+      200,
+      corsHeaders
+    );
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/organization/admins error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleAddOrganizationAdmin(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const organization = await getOrganizationById(db, user.organizationId);
+    if (!organization) {
+      return json({ error: "Organization not found" }, 404, corsHeaders);
+    }
+    if (organization.createdBy !== user.id) {
+      return json({ error: "Only superadmin can add admins" }, 403, corsHeaders);
+    }
+
+    const body = await req.json();
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const password = typeof body.password === "string" ? body.password : "";
+    const phone = typeof body.phone === "string" ? body.phone.trim() : null;
+
+    if (!email) {
+      return json({ error: "Email is required" }, 400, corsHeaders);
+    }
+
+    const adminRoleId = await getAdminRoleId(db);
+    const existingUsers = await db.select().from(schema.users).where(eq(schema.users.email, email));
+    const existingUser = existingUsers[0];
+
+    if (existingUser) {
+      if (existingUser.organizationId && existingUser.organizationId !== organization.id) {
+        return json({ error: "User belongs to another organization" }, 409, corsHeaders);
+      }
+      if (existingUser.organizationId === organization.id && existingUser.roleId === adminRoleId) {
+        return json({ error: "User is already an admin in this organization" }, 400, corsHeaders);
+      }
+
+      await db
+        .update(schema.users)
+        .set({
+          organizationId: organization.id,
+          roleId: adminRoleId,
+          ...(phone ? { phone } : {}),
+          ...(name ? { name } : {}),
+        })
+        .where(eq(schema.users.id, existingUser.id));
+
+      const updated = await db.select().from(schema.users).where(eq(schema.users.id, existingUser.id));
+      return json({ admin: { ...sanitizeUser(updated[0]), role: "admin", isSuperAdmin: false } }, 201, corsHeaders);
+    }
+
+    if (!name || !password) {
+      return json({ error: "Name and password are required for new users" }, 400, corsHeaders);
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+    const [created] = await db
+      .insert(schema.users)
+      .values({
+        email,
+        password: hashed,
+        name,
+        phone,
+        roleId: adminRoleId,
+        organizationId: organization.id,
+      })
+      .returning();
+
+    return json({ admin: { ...sanitizeUser(created), role: "admin", isSuperAdmin: false } }, 201, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/organization/admins/add error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleRemoveOrganizationAdmin(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const organization = await getOrganizationById(db, user.organizationId);
+    if (!organization) {
+      return json({ error: "Organization not found" }, 404, corsHeaders);
+    }
+    if (organization.createdBy !== user.id) {
+      return json({ error: "Only superadmin can remove admins" }, 403, corsHeaders);
+    }
+
+    const { adminUserId } = await req.json();
+    if (typeof adminUserId !== "number") {
+      return json({ error: "adminUserId is required" }, 400, corsHeaders);
+    }
+    if (adminUserId === organization.createdBy) {
+      return json({ error: "Superadmin cannot be removed. Transfer superadmin first." }, 400, corsHeaders);
+    }
+
+    const adminRoleId = await getAdminRoleId(db);
+    const targetArr = await db
+      .select()
+      .from(schema.users)
+      .where(and(eq(schema.users.id, adminUserId), eq(schema.users.organizationId, organization.id)));
+
+    if (targetArr.length === 0) {
+      return json({ error: "Admin not found in organization" }, 404, corsHeaders);
+    }
+
+    const target = targetArr[0];
+    if (target.roleId !== adminRoleId) {
+      return json({ error: "Target user is not an admin" }, 400, corsHeaders);
+    }
+
+    await db.update(schema.users).set({ organizationId: null }).where(eq(schema.users.id, adminUserId));
+    return json({ success: true }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/organization/admins/remove error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleRenameOrganization(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const organization = await getOrganizationById(db, user.organizationId);
+    if (!organization) {
+      return json({ error: "Organization not found" }, 404, corsHeaders);
+    }
+    if (organization.createdBy !== user.id) {
+      return json({ error: "Only superadmin can rename organization" }, 403, corsHeaders);
+    }
+
+    const { name } = await req.json();
+    const nextName = typeof name === "string" ? name.trim() : "";
+    if (!nextName) {
+      return json({ error: "Organization name is required" }, 400, corsHeaders);
+    }
+
+    await db.update(schema.organizations).set({ name: nextName }).where(eq(schema.organizations.id, organization.id));
+    return json({ success: true, organization: { ...organization, name: nextName } }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/organization/rename error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleTransferSuperadmin(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const organization = await getOrganizationById(db, user.organizationId);
+    if (!organization) {
+      return json({ error: "Organization not found" }, 404, corsHeaders);
+    }
+    if (organization.createdBy !== user.id) {
+      return json({ error: "Only superadmin can transfer superadmin" }, 403, corsHeaders);
+    }
+
+    const { newSuperadminUserId } = await req.json();
+    if (typeof newSuperadminUserId !== "number") {
+      return json({ error: "newSuperadminUserId is required" }, 400, corsHeaders);
+    }
+    if (newSuperadminUserId === user.id) {
+      return json({ error: "Choose another admin to transfer superadmin" }, 400, corsHeaders);
+    }
+
+    const adminRoleId = await getAdminRoleId(db);
+    const targetArr = await db
+      .select()
+      .from(schema.users)
+      .where(and(eq(schema.users.id, newSuperadminUserId), eq(schema.users.organizationId, organization.id)));
+    if (targetArr.length === 0) {
+      return json({ error: "Target admin not found in organization" }, 404, corsHeaders);
+    }
+    if (targetArr[0].roleId !== adminRoleId) {
+      return json({ error: "Target user is not an admin" }, 400, corsHeaders);
+    }
+
+    await db.update(schema.organizations).set({ createdBy: newSuperadminUserId }).where(eq(schema.organizations.id, organization.id));
+    return json({ success: true }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/organization/superadmin/transfer error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleExitOrganization(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const organization = await getOrganizationById(db, user.organizationId);
+    if (!organization) {
+      return json({ error: "Organization not found" }, 404, corsHeaders);
+    }
+
+    if (organization.createdBy === user.id) {
+      const admins = await getOrganizationAdmins(db, organization.id);
+      const candidates = admins
+        .filter((admin: any) => admin.id !== user.id)
+        .map((admin: any) => sanitizeUser(admin));
+      return json(
+        {
+          error: "Superadmin must transfer superadmin to another admin before exiting.",
+          transferCandidates: candidates,
+        },
+        400,
+        corsHeaders
+      );
+    }
+
+    await db.update(schema.users).set({ organizationId: null }).where(eq(schema.users.id, user.id));
+    return json({ success: true }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/organization/exit error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleProjectsList(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const projects = await db
+      .select()
+      .from(schema.projects)
+      .where(eq(schema.projects.organizationId, user.organizationId));
+
+    const totalProjects = projects.length;
+    const activeProjects = projects.filter((project: any) => project.status === "active").length;
+
+    return json(
+      {
+        projects,
+        summary: {
+          totalProjects,
+          activeProjects,
+        },
+      },
+      200,
+      corsHeaders
+    );
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/projects error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleCreateProject(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const { name, description } = await req.json();
+    const projectName = typeof name === "string" ? name.trim() : "";
+    const projectDescription = typeof description === "string" ? description.trim() : null;
+
+    if (!projectName) {
+      return json({ error: "Project name is required" }, 400, corsHeaders);
+    }
+
+    const [created] = await db
+      .insert(schema.projects)
+      .values({
+        organizationId: user.organizationId,
+        name: projectName,
+        description: projectDescription,
+        status: "active",
+        createdBy: user.id,
+      })
+      .returning();
+
+    return json({ project: created }, 201, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/projects/create error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleProjectDetail(
+  req: Request,
+  env: Env,
+  db: any,
+  projectId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const projects = await db
+      .select()
+      .from(schema.projects)
+      .where(and(eq(schema.projects.id, projectId), eq(schema.projects.organizationId, user.organizationId)));
+    const project = projects[0];
+
+    if (!project) {
+      return json({ error: "Project not found" }, 404, corsHeaders);
+    }
+
+    return json({ project }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId} error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+async function getProjectForAdmin(db: any, user: any, projectId: number) {
+  const projects = await db
+    .select()
+    .from(schema.projects)
+    .where(and(eq(schema.projects.id, projectId), eq(schema.projects.organizationId, user.organizationId)));
+  return projects[0] || null;
+}
+
+async function getProjectOverviewData(db: any, projectId: number) {
+  const rubrics = await db
+    .select()
+    .from(schema.projectRubrics)
+    .where(eq(schema.projectRubrics.projectId, projectId));
+  rubrics.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+  const formRows = await db
+    .select()
+    .from(schema.projectForms)
+    .where(eq(schema.projectForms.projectId, projectId));
+  const projectForm = formRows[0] || null;
+
+  const projectEvaluators = await db
+    .select()
+    .from(schema.projectEvaluators)
+    .where(eq(schema.projectEvaluators.projectId, projectId));
+
+  const videos = await db
+    .select()
+    .from(schema.projectVideos)
+    .where(eq(schema.projectVideos.projectId, projectId));
+
+  return { rubrics, projectForm, projectEvaluators, videos };
+}
+
+async function getProjectSubmissionAttachmentVideos(db: any, projectId: number) {
+  const submissions = await db
+    .select()
+    .from(schema.projectFormSubmissions)
+    .where(eq(schema.projectFormSubmissions.projectId, projectId));
+  if (submissions.length === 0) return [];
+
+  const submissionIds = submissions.map((submission: any) => submission.id);
+  const attachments = await db
+    .select()
+    .from(schema.projectFormSubmissionAttachments)
+    .where(
+      and(
+        eq(schema.projectFormSubmissionAttachments.attachmentType, "video"),
+        inArray(schema.projectFormSubmissionAttachments.submissionId, submissionIds)
+      )
+    );
+
+  return attachments;
+}
+
+async function getEvaluatorForUserInOrg(db: any, user: any) {
+  if (user.organizationId) {
+    const byUserIdInOrg = await db
+      .select()
+      .from(schema.evaluators)
+      .where(
+        and(
+          eq(schema.evaluators.organizationId, user.organizationId),
+          eq(schema.evaluators.userId, user.id)
+        )
+      );
+    if (byUserIdInOrg.length > 0) return byUserIdInOrg[0];
+
+    const byEmailInOrg = await db
+      .select()
+      .from(schema.evaluators)
+      .where(
+        and(
+          eq(schema.evaluators.organizationId, user.organizationId),
+          eq(schema.evaluators.email, user.email)
+        )
+      );
+    if (byEmailInOrg.length > 0) return byEmailInOrg[0];
+  }
+
+  const byEmail = await db
+    .select()
+    .from(schema.evaluators)
+    .where(eq(schema.evaluators.email, user.email));
+  if (byEmail.length > 0) return byEmail[0];
+
+  return null;
+}
+
+function parseAttachmentTypes(raw: unknown): AttachmentType[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((value): value is AttachmentType =>
+    typeof value === "string" && (ALLOWED_ATTACHMENT_TYPES as readonly string[]).includes(value)
+  );
+}
+
+function fileToAttachmentType(file: File): AttachmentType | null {
+  const type = (file.type || "").toLowerCase();
+  const name = (file.name || "").toLowerCase();
+
+  if (type.startsWith("image/")) return "images";
+  if (type.startsWith("video/")) return "video";
+  if (type === "application/pdf" || name.endsWith(".pdf")) return "pdf";
+  if (
+    type === "application/zip" ||
+    type === "application/x-zip-compressed" ||
+    name.endsWith(".zip")
+  ) {
+    return "zip";
+  }
+  return null;
+}
+
+function normalizeProjectFormFields(raw: unknown) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((field) => {
+      const label = typeof field?.label === "string" ? field.label.trim() : "";
+      const type = typeof field?.type === "string" ? field.type.trim() : "text";
+      const required = Boolean(field?.required);
+      const attachmentTypes = type === "attachment" ? parseAttachmentTypes(field?.attachmentTypes) : [];
+      return {
+        label,
+        type,
+        required,
+        ...(type === "attachment" ? { attachmentTypes } : {}),
+      };
+    })
+    .filter((field) => field.label);
+}
+
+export async function handleProjectOverview(req: Request, env: Env, db: any, projectId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) {
+      return json({ error: "Project not found" }, 404, corsHeaders);
+    }
+
+    const { rubrics, projectForm, projectEvaluators } = await getProjectOverviewData(db, projectId);
+    const submissionVideos = await getProjectSubmissionAttachmentVideos(db, projectId);
+    const evaluatorIds = projectEvaluators.map((row: any) => row.evaluatorId);
+
+    const evaluators = evaluatorIds.length
+      ? await Promise.all(
+          evaluatorIds.map(async (evaluatorId: number) => {
+            const rows = await db.select().from(schema.evaluators).where(eq(schema.evaluators.id, evaluatorId));
+            return rows[0];
+          })
+        )
+      : [];
+
+    const totalVideos = submissionVideos.length;
+    const videosEvaluated = submissionVideos.filter(
+      (video: any) => video.reviewStatus === "reviewed"
+    ).length;
+    const pendingReviews = submissionVideos.filter(
+      (video: any) => video.reviewStatus !== "reviewed"
+    ).length;
+
+    let parsedFields: any[] = [];
+    if (projectForm?.fieldsJson) {
+      try {
+        parsedFields = normalizeProjectFormFields(JSON.parse(projectForm.fieldsJson));
+      } catch {
+        parsedFields = [];
+      }
+    }
+
+    const workerOrigin = new URL(req.url).origin;
+    const videos = submissionVideos
+      .slice()
+      .sort((a: any, b: any) => b.id - a.id)
+      .map((video: any) => ({
+        id: video.id,
+        title: video.fileName,
+        status: video.reviewStatus || "unassigned",
+        playbackUrl: `${workerOrigin}/api/projects/${projectId}/videos/${video.id}/stream`,
+      }));
+
+    return json(
+      {
+        project,
+        metrics: {
+          totalVideos,
+          evaluatorsAssigned: evaluators.length,
+          pendingReviews,
+          videosEvaluated,
+        },
+        rubrics,
+        formFields: parsedFields,
+        videosPreview: videos.slice(0, 6),
+        evaluators,
+      },
+      200,
+      corsHeaders
+    );
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId}/overview error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleProjectVideos(req: Request, env: Env, db: any, projectId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const workerOrigin = new URL(req.url).origin;
+    const attachments = await getProjectSubmissionAttachmentVideos(db, projectId);
+    const videos = attachments
+      .slice()
+      .sort((a: any, b: any) => b.id - a.id)
+      .map((attachment: any) => ({
+        id: attachment.id,
+        title: attachment.fileName,
+        status: attachment.reviewStatus || "unassigned",
+        assignedEvaluatorId: attachment.assignedEvaluatorId || null,
+        playbackUrl: `${workerOrigin}/api/projects/${projectId}/videos/${attachment.id}/stream`,
+      }));
+    return json({ videos }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleProjectVideoStream(
+  req: Request,
+  env: Env,
+  db: any,
+  projectId: number,
+  attachmentId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    let project: any = null;
+    if (user.role === "admin" && user.organizationId) {
+      project = await getProjectForAdmin(db, user, projectId);
+    } else {
+      const evaluator = await getEvaluatorForUserInOrg(db, user);
+      if (!evaluator) return json({ error: "Unauthorized" }, 403, corsHeaders);
+      const projects = await db
+        .select()
+        .from(schema.projects)
+        .where(
+          and(
+            eq(schema.projects.id, projectId),
+            eq(schema.projects.organizationId, evaluator.organizationId)
+          )
+        );
+      project = projects[0] || null;
+    }
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const attachmentRows = await db
+      .select()
+      .from(schema.projectFormSubmissionAttachments)
+      .where(
+        and(
+          eq(schema.projectFormSubmissionAttachments.id, attachmentId),
+          eq(schema.projectFormSubmissionAttachments.attachmentType, "video")
+        )
+      );
+    const attachment = attachmentRows[0];
+    if (!attachment) return json({ error: "Video not found" }, 404, corsHeaders);
+
+    const submissionRows = await db
+      .select()
+      .from(schema.projectFormSubmissions)
+      .where(eq(schema.projectFormSubmissions.id, attachment.submissionId));
+    const submission = submissionRows[0];
+    if (!submission || submission.projectId !== projectId) {
+      return json({ error: "Video not found in project" }, 404, corsHeaders);
+    }
+
+    if (user.role !== "admin") {
+      const evaluator = await getEvaluatorForUserInOrg(db, user);
+      if (!evaluator || attachment.assignedEvaluatorId !== evaluator.id) {
+        return json({ error: "Unauthorized to access this video" }, 403, corsHeaders);
+      }
+    }
+
+    const objectHead = await env.BUCKET.head(attachment.r2Key);
+    if (!objectHead) return json({ error: "Stored video not found" }, 404, corsHeaders);
+
+    const rangeHeader = req.headers.get("range");
+    const contentType = attachment.mimeType || "video/mp4";
+
+    if (rangeHeader && rangeHeader.startsWith("bytes=")) {
+      const [startStrRaw, endStrRaw] = rangeHeader.replace("bytes=", "").split("-");
+      const start = Number.parseInt(startStrRaw || "0", 10);
+      const end = endStrRaw ? Number.parseInt(endStrRaw, 10) : objectHead.size - 1;
+      const normalizedStart = Number.isFinite(start) && start >= 0 ? start : 0;
+      const safeMaxEnd = objectHead.size > 0 ? objectHead.size - 1 : 0;
+      const normalizedEndRaw =
+        Number.isFinite(end) && end >= normalizedStart ? end : safeMaxEnd;
+      const normalizedEnd = Math.min(normalizedEndRaw, safeMaxEnd);
+      const length = normalizedEnd - normalizedStart + 1;
+
+      const object = await env.BUCKET.get(attachment.r2Key, {
+        range: { offset: normalizedStart, length },
+      });
+      if (!object) return json({ error: "Stored video not found" }, 404, corsHeaders);
+
+      return new Response(object.body, {
+        status: 206,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": contentType,
+          "Accept-Ranges": "bytes",
+          "Content-Range": `bytes ${normalizedStart}-${normalizedEnd}/${objectHead.size}`,
+          "Content-Length": String(length),
+        },
+      });
+    }
+
+    const object = await env.BUCKET.get(attachment.r2Key);
+    if (!object) return json({ error: "Stored video not found" }, 404, corsHeaders);
+
+    return new Response(object.body, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": contentType,
+        "Accept-Ranges": "bytes",
+        "Content-Length": String(objectHead.size),
+      },
+    });
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId}/videos/${attachmentId}/stream error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleProjectRubrics(req: Request, env: Env, db: any, projectId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    if (req.method === "GET") {
+      const rubrics = await db
+        .select()
+        .from(schema.projectRubrics)
+        .where(eq(schema.projectRubrics.projectId, projectId));
+      rubrics.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+      return json({ rubrics }, 200, corsHeaders);
+    }
+
+    const body = await req.json();
+    const rubrics = Array.isArray(body.rubrics) ? body.rubrics : [];
+
+    await db.delete(schema.projectRubrics).where(eq(schema.projectRubrics.projectId, projectId));
+    for (let i = 0; i < rubrics.length; i += 1) {
+      const rubric = rubrics[i];
+      const title = typeof rubric.title === "string" ? rubric.title.trim() : "";
+      if (!title) continue;
+      const description = typeof rubric.description === "string" ? rubric.description.trim() : null;
+      const weightValue = Number.isFinite(Number(rubric.weight)) ? Number(rubric.weight) : 0;
+      await db.insert(schema.projectRubrics).values({
+        projectId,
+        title,
+        description,
+        weight: weightValue,
+        sortOrder: i,
+      });
+    }
+
+    const updated = await db
+      .select()
+      .from(schema.projectRubrics)
+      .where(eq(schema.projectRubrics.projectId, projectId));
+    updated.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+    return json({ rubrics: updated }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId}/rubrics error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleProjectForm(req: Request, env: Env, db: any, projectId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    if (req.method === "GET") {
+      const formRows = await db
+        .select()
+        .from(schema.projectForms)
+        .where(eq(schema.projectForms.projectId, projectId));
+      const record = formRows[0];
+      let fields: any[] = [];
+      if (record?.fieldsJson) {
+        try {
+          fields = normalizeProjectFormFields(JSON.parse(record.fieldsJson));
+        } catch {
+          fields = [];
+        }
+      }
+      return json({ fields }, 200, corsHeaders);
+    }
+
+    const body = await req.json();
+    const fields = normalizeProjectFormFields(body.fields);
+    const fieldsJson = JSON.stringify(fields);
+
+    const existing = await db
+      .select()
+      .from(schema.projectForms)
+      .where(eq(schema.projectForms.projectId, projectId));
+
+    if (existing.length > 0) {
+      await db
+        .update(schema.projectForms)
+        .set({ fieldsJson })
+        .where(eq(schema.projectForms.projectId, projectId));
+    } else {
+      await db.insert(schema.projectForms).values({ projectId, fieldsJson });
+    }
+
+    return json({ fields }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId}/form error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleProjectFormTestSubmit(
+  req: Request,
+  env: Env,
+  db: any,
+  projectId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const formRows = await db
+      .select()
+      .from(schema.projectForms)
+      .where(eq(schema.projectForms.projectId, projectId));
+    const formConfig = formRows[0];
+    const formFields = formConfig?.fieldsJson
+      ? normalizeProjectFormFields(JSON.parse(formConfig.fieldsJson))
+      : [];
+
+    const formData = await req.formData();
+    const fieldsPayloadRaw = formData.get("fields");
+    let fieldsPayload: Record<string, unknown> = {};
+    if (typeof fieldsPayloadRaw === "string" && fieldsPayloadRaw.trim()) {
+      try {
+        fieldsPayload = JSON.parse(fieldsPayloadRaw);
+      } catch {
+        fieldsPayload = {};
+      }
+    }
+
+    const [submission] = await db
+      .insert(schema.projectFormSubmissions)
+      .values({
+        projectId,
+        submitterUserId: user.id,
+        fieldsJson: JSON.stringify(fieldsPayload),
+      })
+      .returning();
+
+    const attachmentFields = formFields
+      .map((field: any, index: number) => ({ ...field, index }))
+      .filter((field: any) => field.type === "attachment");
+
+    let attachmentCount = 0;
+    for (const field of attachmentFields) {
+      const formFieldKey = `attachment_${field.index}`;
+      const files = formData.getAll(formFieldKey).filter((entry) => entry instanceof File) as File[];
+
+      if (field.required && files.length === 0) {
+        return json({ error: `Attachment required for field '${field.label}'.` }, 400, corsHeaders);
+      }
+
+      for (const file of files) {
+        if (!file.name || file.size === 0) continue;
+
+        const detectedType = fileToAttachmentType(file);
+        if (!detectedType) {
+          return json({ error: `Unsupported attachment type for file ${file.name}` }, 400, corsHeaders);
+        }
+        const allowedTypes = parseAttachmentTypes(field.attachmentTypes);
+        if (allowedTypes.length > 0 && !allowedTypes.includes(detectedType)) {
+          return json(
+            { error: `Attachment type '${detectedType}' is not allowed for field '${field.label}'.` },
+            400,
+            corsHeaders
+          );
+        }
+
+        const key = `project-form-submissions/${projectId}/${submission.id}/${crypto.randomUUID()}-${file.name}`;
+        const buffer = await file.arrayBuffer();
+        await env.BUCKET.put(key, buffer, {
+          httpMetadata: {
+            contentType: file.type || undefined,
+          },
+        });
+
+        await db.insert(schema.projectFormSubmissionAttachments).values({
+          submissionId: submission.id,
+          formFieldKey,
+          r2Key: key,
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type || "application/octet-stream",
+          attachmentType: detectedType,
+          assignedEvaluatorId: null,
+          reviewStatus: "unassigned",
+        });
+        attachmentCount += 1;
+      }
+    }
+
+    return json(
+      { success: true, submissionId: submission.id, attachmentsStored: attachmentCount },
+      201,
+      corsHeaders
+    );
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId}/form/test-submit error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleOrganizationEvaluators(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const evaluators = await db
+      .select()
+      .from(schema.evaluators)
+      .where(eq(schema.evaluators.organizationId, user.organizationId));
+
+    return json({ evaluators }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleAssignProjectEvaluator(req: Request, env: Env, db: any, projectId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const body = await req.json();
+    const mode = body.mode === "existing" ? "existing" : "new";
+    let evaluatorId: number | null = null;
+
+    if (mode === "existing") {
+      const existingEvaluatorId = Number(body.evaluatorId);
+      if (!existingEvaluatorId) {
+        return json({ error: "evaluatorId is required" }, 400, corsHeaders);
+      }
+      const evaluatorRows = await db
+        .select()
+        .from(schema.evaluators)
+        .where(and(eq(schema.evaluators.id, existingEvaluatorId), eq(schema.evaluators.organizationId, user.organizationId)));
+      if (evaluatorRows.length === 0) {
+        return json({ error: "Evaluator not found" }, 404, corsHeaders);
+      }
+      evaluatorId = evaluatorRows[0].id;
+    } else {
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      const name = typeof body.name === "string" ? body.name.trim() : null;
+      if (!email) {
+        return json({ error: "Evaluator email is required" }, 400, corsHeaders);
+      }
+
+      const existingByEmail = await db
+        .select()
+        .from(schema.evaluators)
+        .where(and(eq(schema.evaluators.organizationId, user.organizationId), eq(schema.evaluators.email, email)));
+      if (existingByEmail.length > 0) {
+        evaluatorId = existingByEmail[0].id;
+      } else {
+        const matchedUsers = await db
+          .select()
+          .from(schema.users)
+          .where(and(eq(schema.users.email, email), eq(schema.users.organizationId, user.organizationId)));
+        const matchedUser = matchedUsers[0];
+
+        const [createdEvaluator] = await db
+          .insert(schema.evaluators)
+          .values({
+            organizationId: user.organizationId,
+            userId: matchedUser?.id || null,
+            email,
+            name: name || matchedUser?.name || null,
+            createdBy: user.id,
+          })
+          .returning();
+        evaluatorId = createdEvaluator.id;
+      }
+    }
+
+    const existingAssignment = await db
+      .select()
+      .from(schema.projectEvaluators)
+      .where(and(eq(schema.projectEvaluators.projectId, projectId), eq(schema.projectEvaluators.evaluatorId, evaluatorId)));
+    if (existingAssignment.length === 0) {
+      await db.insert(schema.projectEvaluators).values({ projectId, evaluatorId });
+    }
+
+    return json({ success: true }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId}/evaluators/assign error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleAdminVideosGrouped(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const projects = await db
+      .select()
+      .from(schema.projects)
+      .where(eq(schema.projects.organizationId, user.organizationId));
+
+    const workerOrigin = new URL(req.url).origin;
+    const grouped = await Promise.all(
+      projects.map(async (project: any) => {
+        const attachments = await getProjectSubmissionAttachmentVideos(db, project.id);
+        const videos = attachments
+          .slice()
+          .sort((a: any, b: any) => b.id - a.id)
+          .map((attachment: any) => ({
+            id: attachment.id,
+            title: attachment.fileName,
+            status: attachment.reviewStatus || "unassigned",
+            playbackUrl: `${workerOrigin}/api/projects/${project.id}/videos/${attachment.id}/stream`,
+          }));
+
+        return {
+          project: {
+            id: project.id,
+            name: project.name,
+          },
+          summary: {
+            totalVideos: videos.length,
+          },
+          videos,
+        };
+      })
+    );
+
+    return json({ groups: grouped }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/admin/videos error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleAdminEvaluatorsGrouped(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const projects = await db
+      .select()
+      .from(schema.projects)
+      .where(eq(schema.projects.organizationId, user.organizationId));
+
+    const grouped = await Promise.all(
+      projects.map(async (project: any) => {
+        const assignments = await db
+          .select()
+          .from(schema.projectEvaluators)
+          .where(eq(schema.projectEvaluators.projectId, project.id));
+        const evaluatorIds = assignments.map((assignment: any) => assignment.evaluatorId);
+
+        const evaluators = evaluatorIds.length
+          ? await db
+              .select()
+              .from(schema.evaluators)
+              .where(inArray(schema.evaluators.id, evaluatorIds))
+          : [];
+
+        return {
+          project: {
+            id: project.id,
+            name: project.name,
+          },
+          summary: {
+            totalEvaluators: evaluators.length,
+          },
+          evaluators,
+        };
+      })
+    );
+
+    return json({ groups: grouped }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/admin/evaluators error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleProjectVideoAssignmentContext(
+  req: Request,
+  env: Env,
+  db: any,
+  projectId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const assignments = await db
+      .select()
+      .from(schema.projectEvaluators)
+      .where(eq(schema.projectEvaluators.projectId, projectId));
+    const evaluatorIds = assignments.map((a: any) => a.evaluatorId);
+    const evaluators = evaluatorIds.length
+      ? await db.select().from(schema.evaluators).where(inArray(schema.evaluators.id, evaluatorIds))
+      : [];
+
+    const videos = await getProjectSubmissionAttachmentVideos(db, projectId);
+    const unassignedVideos = videos.filter(
+      (video: any) => !video.assignedEvaluatorId && (video.reviewStatus || "unassigned") === "unassigned"
+    );
+
+    return json(
+      {
+        project: { id: project.id, name: project.name },
+        totalVideos: videos.length,
+        unassignedVideos: unassignedVideos.length,
+        evaluators,
+      },
+      200,
+      corsHeaders
+    );
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+function shuffle<T>(items: T[]) {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+export async function handleAssignProjectVideos(
+  req: Request,
+  env: Env,
+  db: any,
+  projectId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const body = await req.json();
+    const allocations = Array.isArray(body.allocations) ? body.allocations : [];
+
+    const assignmentRows = await db
+      .select()
+      .from(schema.projectEvaluators)
+      .where(eq(schema.projectEvaluators.projectId, projectId));
+    const validEvaluatorIds = new Set(assignmentRows.map((row: any) => row.evaluatorId));
+
+    let requestedTotal = 0;
+    const normalized = allocations
+      .map((allocation: any) => ({
+        evaluatorId: Number(allocation.evaluatorId),
+        count: Number(allocation.count),
+      }))
+      .filter((allocation: any) => Number.isFinite(allocation.evaluatorId) && Number.isFinite(allocation.count))
+      .map((allocation: any) => ({
+        evaluatorId: allocation.evaluatorId,
+        count: Math.max(0, Math.floor(allocation.count)),
+      }))
+      .filter((allocation: any) => allocation.count > 0);
+
+    for (const allocation of normalized) {
+      if (!validEvaluatorIds.has(allocation.evaluatorId)) {
+        return json({ error: `Evaluator ${allocation.evaluatorId} is not assigned to this project` }, 400, corsHeaders);
+      }
+      requestedTotal += allocation.count;
+    }
+
+    const videos = await getProjectSubmissionAttachmentVideos(db, projectId);
+    const unassigned = videos.filter(
+      (video: any) => !video.assignedEvaluatorId && (video.reviewStatus || "unassigned") === "unassigned"
+    );
+    if (requestedTotal > unassigned.length) {
+      return json(
+        { error: `Requested ${requestedTotal} videos but only ${unassigned.length} are unassigned.` },
+        400,
+        corsHeaders
+      );
+    }
+
+    const randomized = shuffle(unassigned);
+    let cursor = 0;
+    for (const allocation of normalized) {
+      for (let i = 0; i < allocation.count; i += 1) {
+        const video = randomized[cursor];
+        if (!video) break;
+        cursor += 1;
+        await db
+          .update(schema.projectFormSubmissionAttachments)
+          .set({
+            assignedEvaluatorId: allocation.evaluatorId,
+            reviewStatus: "assigned",
+          })
+          .where(eq(schema.projectFormSubmissionAttachments.id, video.id));
+      }
+    }
+
+    return json({ success: true, assignedVideos: cursor }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleRemoveProjectEvaluator(
+  req: Request,
+  env: Env,
+  db: any,
+  projectId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const { evaluatorId } = await req.json();
+    const evaluatorIdNum = Number(evaluatorId);
+    if (!Number.isFinite(evaluatorIdNum)) {
+      return json({ error: "evaluatorId is required" }, 400, corsHeaders);
+    }
+
+    await db
+      .delete(schema.projectEvaluators)
+      .where(
+        and(
+          eq(schema.projectEvaluators.projectId, projectId),
+          eq(schema.projectEvaluators.evaluatorId, evaluatorIdNum)
+        )
+      );
+
+    const videos = await getProjectSubmissionAttachmentVideos(db, projectId);
+    for (const video of videos) {
+      if (video.assignedEvaluatorId === evaluatorIdNum) {
+        await db
+          .update(schema.projectFormSubmissionAttachments)
+          .set({
+            assignedEvaluatorId: null,
+            reviewStatus: "unassigned",
+            reviewedAt: null,
+          })
+          .where(eq(schema.projectFormSubmissionAttachments.id, video.id));
+      }
+    }
+
+    return json({ success: true }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleEvaluatorProjects(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || (user.role !== "reviewer" && user.role !== "evaluator")) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const evaluator = await getEvaluatorForUserInOrg(db, user);
+    if (!evaluator) return json({ error: "Evaluator profile not found for this user." }, 403, corsHeaders);
+
+    const projectEvaluatorRows = await db
+      .select()
+      .from(schema.projectEvaluators)
+      .where(eq(schema.projectEvaluators.evaluatorId, evaluator.id));
+    const projectIds = projectEvaluatorRows.map((row: any) => row.projectId);
+    if (projectIds.length === 0) return json({ projects: [] }, 200, corsHeaders);
+
+    const projects = await db.select().from(schema.projects).where(inArray(schema.projects.id, projectIds));
+
+    const result = await Promise.all(
+      projects.map(async (project: any) => {
+        const videos = await getProjectSubmissionAttachmentVideos(db, project.id);
+        const assigned = videos.filter((video: any) => video.assignedEvaluatorId === evaluator.id);
+        const pending = assigned.filter((video: any) => video.reviewStatus === "assigned").length;
+        const reviewed = assigned.filter((video: any) => video.reviewStatus === "reviewed").length;
+        return {
+          id: project.id,
+          name: project.name,
+          totalAssignedVideos: assigned.length,
+          pendingVideos: pending,
+          reviewedVideos: reviewed,
+        };
+      })
+    );
+
+    return json({ projects: result }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleEvaluatorReviewQueue(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || (user.role !== "reviewer" && user.role !== "evaluator")) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const evaluator = await getEvaluatorForUserInOrg(db, user);
+    if (!evaluator) return json({ error: "Evaluator profile not found for this user." }, 403, corsHeaders);
+
+    const workerOrigin = new URL(req.url).origin;
+    const projectRows = await db
+      .select()
+      .from(schema.projects)
+      .where(eq(schema.projects.organizationId, evaluator.organizationId));
+
+    const queueItems: any[] = [];
+    for (const project of projectRows) {
+      const videos = await getProjectSubmissionAttachmentVideos(db, project.id);
+      for (const video of videos) {
+        if (video.assignedEvaluatorId === evaluator.id && video.reviewStatus === "assigned") {
+          queueItems.push({
+            id: video.id,
+            projectId: project.id,
+            projectName: project.name,
+            title: video.fileName,
+            status: video.reviewStatus,
+            playbackUrl: `${workerOrigin}/api/projects/${project.id}/videos/${video.id}/stream`,
+          });
+        }
+      }
+    }
+
+    return json({ queue: queueItems }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+async function getEvaluatorVideoContext(
+  db: any,
+  user: any,
+  videoAttachmentId: number
+) {
+  const evaluator = await getEvaluatorForUserInOrg(db, user);
+  if (!evaluator) return null;
+
+  const attachmentRows = await db
+    .select()
+    .from(schema.projectFormSubmissionAttachments)
+    .where(eq(schema.projectFormSubmissionAttachments.id, videoAttachmentId));
+  const attachment = attachmentRows[0];
+  if (!attachment || attachment.attachmentType !== "video") return null;
+  if (attachment.assignedEvaluatorId !== evaluator.id) return null;
+
+  const submissionRows = await db
+    .select()
+    .from(schema.projectFormSubmissions)
+    .where(eq(schema.projectFormSubmissions.id, attachment.submissionId));
+  const submission = submissionRows[0];
+  if (!submission) return null;
+
+  const projectRows = await db
+    .select()
+    .from(schema.projects)
+    .where(
+      and(
+        eq(schema.projects.id, submission.projectId),
+        eq(schema.projects.organizationId, evaluator.organizationId)
+      )
+    );
+  const project = projectRows[0];
+  if (!project) return null;
+
+  return { evaluator, attachment, submission, project };
+}
+
+export async function handleEvaluatorReviewContext(
+  req: Request,
+  env: Env,
+  db: any,
+  videoAttachmentId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || (user.role !== "reviewer" && user.role !== "evaluator")) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const ctx = await getEvaluatorVideoContext(db, user, videoAttachmentId);
+    if (!ctx) return json({ error: "Video not found in your queue" }, 404, corsHeaders);
+
+    const workerOrigin = new URL(req.url).origin;
+    const rubrics = await db
+      .select()
+      .from(schema.projectRubrics)
+      .where(eq(schema.projectRubrics.projectId, ctx.project.id));
+    rubrics.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+    const formRows = await db
+      .select()
+      .from(schema.projectForms)
+      .where(eq(schema.projectForms.projectId, ctx.project.id));
+    const form = formRows[0];
+    const formFields = form?.fieldsJson
+      ? normalizeProjectFormFields(JSON.parse(form.fieldsJson))
+      : [];
+
+    let submittedFields: Record<string, any> = {};
+    if (ctx.submission.fieldsJson) {
+      try {
+        submittedFields = JSON.parse(ctx.submission.fieldsJson);
+      } catch {
+        submittedFields = {};
+      }
+    }
+
+    const submissionAttachments = await db
+      .select()
+      .from(schema.projectFormSubmissionAttachments)
+      .where(eq(schema.projectFormSubmissionAttachments.submissionId, ctx.submission.id));
+
+    const reviewRows = await db
+      .select()
+      .from(schema.projectVideoReviews)
+      .where(eq(schema.projectVideoReviews.videoAttachmentId, videoAttachmentId));
+    const review = reviewRows[0] || null;
+    let rubricBreakdown: any[] = [];
+    if (review?.rubricBreakdownJson) {
+      try {
+        rubricBreakdown = JSON.parse(review.rubricBreakdownJson);
+      } catch {
+        rubricBreakdown = [];
+      }
+    }
+
+    const videoPlaybackUrl = `${workerOrigin}/api/projects/${ctx.project.id}/videos/${ctx.attachment.id}/stream`;
+    const attachmentItems = submissionAttachments
+      .filter((attachment: any) => attachment.id !== ctx.attachment.id)
+      .map((attachment: any) => ({
+        id: attachment.id,
+        fileName: attachment.fileName,
+        type: attachment.attachmentType,
+        formFieldKey: attachment.formFieldKey,
+        url: `${workerOrigin}/api/attachments/${attachment.id}/open`,
+      }));
+
+    return json(
+      {
+        video: {
+          id: ctx.attachment.id,
+          title: ctx.attachment.fileName,
+          playbackUrl: videoPlaybackUrl,
+        },
+        project: {
+          id: ctx.project.id,
+          name: ctx.project.name,
+        },
+        rubrics,
+        formFields,
+        submittedFields,
+        attachments: attachmentItems,
+        review: {
+          rubricBreakdown,
+        },
+      },
+      200,
+      corsHeaders
+    );
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleSaveEvaluatorReview(
+  req: Request,
+  env: Env,
+  db: any,
+  videoAttachmentId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || (user.role !== "reviewer" && user.role !== "evaluator")) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const ctx = await getEvaluatorVideoContext(db, user, videoAttachmentId);
+    if (!ctx) return json({ error: "Video not found in your queue" }, 404, corsHeaders);
+
+    const body = await req.json();
+    const rubricBreakdown = Array.isArray(body.rubricBreakdown) ? body.rubricBreakdown : [];
+    const rubricBreakdownJson = JSON.stringify(rubricBreakdown);
+
+    const existingReview = await db
+      .select()
+      .from(schema.projectVideoReviews)
+      .where(eq(schema.projectVideoReviews.videoAttachmentId, videoAttachmentId));
+    if (existingReview.length > 0) {
+      await db
+        .update(schema.projectVideoReviews)
+        .set({ rubricBreakdownJson })
+        .where(eq(schema.projectVideoReviews.videoAttachmentId, videoAttachmentId));
+    } else {
+      await db.insert(schema.projectVideoReviews).values({
+        videoAttachmentId,
+        projectId: ctx.project.id,
+        evaluatorId: ctx.evaluator.id,
+        rubricBreakdownJson,
+      });
+    }
+
+    await db
+      .update(schema.projectFormSubmissionAttachments)
+      .set({
+        reviewStatus: "reviewed",
+        reviewedAt: new Date().toISOString(),
+      })
+      .where(eq(schema.projectFormSubmissionAttachments.id, videoAttachmentId));
+
+    return json({ success: true }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleOpenAttachment(
+  req: Request,
+  env: Env,
+  db: any,
+  attachmentId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user) return json({ error: "Unauthorized" }, 403, corsHeaders);
+
+    const attachmentRows = await db
+      .select()
+      .from(schema.projectFormSubmissionAttachments)
+      .where(eq(schema.projectFormSubmissionAttachments.id, attachmentId));
+    const attachment = attachmentRows[0];
+    if (!attachment) return json({ error: "Attachment not found" }, 404, corsHeaders);
+
+    const submissionRows = await db
+      .select()
+      .from(schema.projectFormSubmissions)
+      .where(eq(schema.projectFormSubmissions.id, attachment.submissionId));
+    const submission = submissionRows[0];
+    if (!submission) return json({ error: "Attachment not found" }, 404, corsHeaders);
+
+    const projectRows = await db
+      .select()
+      .from(schema.projects)
+      .where(eq(schema.projects.id, submission.projectId));
+    const project = projectRows[0];
+    if (!project) return json({ error: "Attachment not found" }, 404, corsHeaders);
+
+    if (user.role === "admin") {
+      if (!user.organizationId || user.organizationId !== project.organizationId) {
+        return json({ error: "Unauthorized" }, 403, corsHeaders);
+      }
+    } else {
+      const evaluator = await getEvaluatorForUserInOrg(db, user);
+      if (!evaluator || evaluator.organizationId !== project.organizationId) {
+        return json({ error: "Unauthorized" }, 403, corsHeaders);
+      }
+      if (
+        attachment.attachmentType === "video" &&
+        attachment.assignedEvaluatorId &&
+        attachment.assignedEvaluatorId !== evaluator.id
+      ) {
+        return json({ error: "Unauthorized" }, 403, corsHeaders);
+      }
+    }
+
+    const object = await env.BUCKET.get(attachment.r2Key);
+    if (!object) return json({ error: "Attachment file not found" }, 404, corsHeaders);
+
+    return new Response(object.body, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": attachment.mimeType || "application/octet-stream",
+        "Content-Disposition": `inline; filename="${attachment.fileName}"`,
+      },
+    });
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
   }
 }

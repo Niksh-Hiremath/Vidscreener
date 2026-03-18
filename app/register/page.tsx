@@ -40,7 +40,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 border rounded shadow">
+    <div className="max-w-md mx-auto mt-20 p-6 border border-zinc-800 bg-zinc-900 rounded shadow text-zinc-100">
       <h1 className="text-2xl mb-4">Register</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
@@ -48,7 +48,7 @@ export default function RegisterPage() {
           placeholder="Name"
           value={name}
           onChange={e => setName(e.target.value)}
-          className="border p-2 rounded"
+          className="border border-zinc-700 bg-zinc-800 p-2 rounded"
           required
         />
         <input
@@ -56,7 +56,7 @@ export default function RegisterPage() {
           placeholder="Email"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          className="border p-2 rounded"
+          className="border border-zinc-700 bg-zinc-800 p-2 rounded"
           required
         />
         <input
@@ -64,7 +64,7 @@ export default function RegisterPage() {
           placeholder="Password"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          className="border p-2 rounded"
+          className="border border-zinc-700 bg-zinc-800 p-2 rounded"
           required
         />
         <input
@@ -72,17 +72,17 @@ export default function RegisterPage() {
           placeholder="Phone (optional)"
           value={phone}
           onChange={e => setPhone(e.target.value)}
-          className="border p-2 rounded"
+          className="border border-zinc-700 bg-zinc-800 p-2 rounded"
         />
-        <select value={role} onChange={e => setRole(e.target.value)} className="border p-2 rounded">
+        <select value={role} onChange={e => setRole(e.target.value)} className="border border-zinc-700 bg-zinc-800 p-2 rounded">
           {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
-        {error && <div className="text-red-500">{error}</div>}
+        {error && <div className="text-red-400">{error}</div>}
         {success && <div className="text-green-600">Registration successful! Redirecting...</div>}
         <button type="submit" className="bg-blue-600 text-white p-2 rounded">Register</button>
       </form>
-      <div className="mt-4 text-sm">
-        Already have an account? <a href="/login" className="text-blue-600 underline">Login</a>
+      <div className="mt-4 text-sm text-zinc-300">
+        Already have an account? <a href="/login" className="text-blue-400 underline">Login</a>
       </div>
     </div>
   );

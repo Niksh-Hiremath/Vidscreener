@@ -13,5 +13,9 @@ export default function LogoutPage() {
       window.location.href = "/login";
     });
   }, []);
-  return <div className="p-8 text-center">Logging out...</div>;
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-8 text-center">
+      Logging out...
+    </div>
+  );
 }

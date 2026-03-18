@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Vidscreener
 
-## Getting Started
+Vidscreener is a Next.js frontend with a Cloudflare Worker API backend using D1 (SQLite) via Drizzle.
 
-First, run the development server:
+## Stack
+- `app/`: Next.js App Router UI
+- `wrangler/`: Cloudflare Worker API
+- `db/`: Drizzle schema + DB access helpers
+- `drizzle/`: SQL migrations
 
+## Environment Variables
+- `JWT_SECRET`: JWT signing secret used by the Worker.
+- `WORKER_API_BASE_URL`: base URL used by server-side Next code (default `http://localhost:8787`).
+- `NEXT_PUBLIC_WORKER_API_BASE_URL`: base URL used by browser-side Next code (default `http://localhost:8787`).
+- `ALLOWED_ORIGINS`: optional comma-separated CORS allowlist for Worker (example: `http://localhost:3000,https://your-domain.com`).
+
+## Local Development
+
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Run Next.js frontend:
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Run Worker API:
+```bash
+npx wrangler dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Frontend default URL: `http://localhost:3000`
+Worker default URL: `http://localhost:8787`
 
-## Learn More
+## Auth + API
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/user/profile`
+- `POST /api/organization/create`
+- `GET /api/organization/admins`
+- `POST /api/organization/admins/add` (superadmin only)
+- `POST /api/organization/admins/remove` (superadmin only)
+- `POST /api/organization/rename` (superadmin only)
+- `POST /api/organization/superadmin/transfer` (superadmin only)
+- `POST /api/organization/exit` (admin; superadmin must transfer first)
 
-To learn more about Next.js, take a look at the following resources:
+JWT is issued by Worker and stored in an HttpOnly `token` cookie.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Database
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Generate migrations with Drizzle based on `db/schema.ts`.
+- Apply migrations to D1 using Wrangler/Drizzle workflow.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Seed roles (`admin`, `reviewer`, `submitter`) using `seed-roles.ts` in your deployment/bootstrapping flow.
