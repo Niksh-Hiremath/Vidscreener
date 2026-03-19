@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 
 export default function CreateOrganizationForm() {
@@ -21,12 +22,12 @@ export default function CreateOrganizationForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
-        credentials: "include"
+        credentials: "include",
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create organization");
-      setSuccess("Organization created! Reloading...");
-      setTimeout(() => window.location.reload(), 1200);
+      setSuccess("Organization created. Reloading...");
+      setTimeout(() => window.location.reload(), 1000);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -35,24 +36,20 @@ export default function CreateOrganizationForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4">
-      <label className="block mb-2 text-zinc-300">Organization Name</label>
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <label className="block text-sm text-muted">Organization name</label>
       <input
         type="text"
         value={name}
-        onChange={e => setName(e.target.value)}
-        className="border border-zinc-700 bg-zinc-800 px-2 py-1 rounded w-full mb-2"
+        onChange={(e) => setName(e.target.value)}
+        className="input-base focus-ring w-full rounded-xl px-3 py-2.5"
         required
       />
-      <button
-        type="submit"
-        className="bg-blue-600 text-white px-4 py-2 rounded"
-        disabled={loading}
-      >
+      <button type="submit" className="button-primary rounded-xl px-4 py-2 text-sm font-medium" disabled={loading}>
         {loading ? "Creating..." : "Create Organization"}
       </button>
-      {error && <div className="text-red-400 mt-2">{error}</div>}
-      {success && <div className="text-green-600 mt-2">{success}</div>}
+      {error ? <div className="text-sm text-rose-600">{error}</div> : null}
+      {success ? <div className="text-sm text-emerald-600">{success}</div> : null}
     </form>
   );
 }

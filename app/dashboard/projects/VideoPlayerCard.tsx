@@ -14,13 +14,13 @@ export default function VideoPlayerCard({
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   return (
-    <div className="rounded border border-zinc-700 bg-zinc-800 p-3">
+    <div className="surface-muted rounded-xl p-3">
       <div className="font-semibold mb-1">{title}</div>
-      <div className="text-xs text-zinc-400 mb-2">{status}</div>
+      <div className="text-xs text-muted mb-2 capitalize">{status}</div>
 
       <video
         ref={videoRef}
-        className="w-full rounded bg-black mb-3"
+        className="w-full rounded-lg bg-black mb-1 aspect-video object-contain"
         controls
         preload="metadata"
         src={playbackUrl}

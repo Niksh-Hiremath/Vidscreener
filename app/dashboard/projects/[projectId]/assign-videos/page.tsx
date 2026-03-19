@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 const WORKER_API_BASE_URL =
   process.env.NEXT_PUBLIC_WORKER_API_BASE_URL ||
@@ -99,38 +99,42 @@ export default function AssignVideosPage() {
   }
 
   return (
-    <div className="rounded border border-zinc-800 bg-zinc-900 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Assign Videos</h1>
-        <Link href={`/dashboard/projects/${projectId}`} className="text-blue-400 underline text-sm">
+    <div className="space-y-5">
+      <section className="rounded-2xl p-6 md:p-7 flex items-center justify-between gap-2">
+        <h1 className="text-3xl font-semibold tracking-tight">Assign Videos</h1>
+        <Link
+          href={`/dashboard/projects/${projectId}`}
+          className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2 text-sm font-medium text-indigo-700 transition hover:from-indigo-100"
+        >
           Back to Project
         </Link>
-      </div>
+      </section>
 
-      {loading ? <div>Loading...</div> : null}
-      {error ? <div className="text-red-400 mb-2">{error}</div> : null}
-      {success ? <div className="text-green-400 mb-2">{success}</div> : null}
+      <section className="surface-card rounded-2xl p-6">
+        {loading ? <div className="text-sm text-muted">Loading...</div> : null}
+        {error ? <div className="text-sm text-rose-600 mb-2">{error}</div> : null}
+        {success ? <div className="text-sm text-emerald-600 mb-2">{success}</div> : null}
 
       {!loading ? (
         <>
-          <div className="rounded border border-zinc-700 bg-zinc-800 p-4 mb-4">
+          <div className="surface-muted rounded-xl p-4 mb-4">
             <div className="font-semibold">{projectName}</div>
-            <div className="text-sm text-zinc-400 mt-1">Total videos: {totalVideos}</div>
-            <div className="text-sm text-zinc-400">Unassigned videos: {unassignedVideos}</div>
-            <div className="text-sm text-zinc-400">Requested assignment: {requestedTotal}</div>
+            <div className="text-sm text-muted mt-1">Total videos: {totalVideos}</div>
+            <div className="text-sm text-muted">Unassigned videos: {unassignedVideos}</div>
+            <div className="text-sm text-muted">Requested assignment: {requestedTotal}</div>
           </div>
 
           <div className="space-y-3">
             {evaluators.map((evaluator) => (
-              <div key={evaluator.id} className="rounded border border-zinc-700 bg-zinc-800 p-3">
+              <div key={evaluator.id} className="surface-muted rounded-xl p-4">
                 <div className="font-semibold">{evaluator.name || evaluator.email}</div>
-                <div className="text-sm text-zinc-400">{evaluator.email}</div>
-                <div className="mt-2">
+                <div className="text-sm text-muted">{evaluator.email}</div>
+                <div className="mt-3">
                   <label className="text-sm">Videos to assign</label>
                   <input
                     type="number"
                     min={0}
-                    className="mt-1 w-full border border-zinc-700 bg-zinc-900 rounded px-3 py-2"
+                    className="input-base focus-ring mt-1 w-full rounded-xl px-3 py-2"
                     value={allocations[evaluator.id] || 0}
                     onChange={(e) => updateAllocation(evaluator.id, e.target.value)}
                   />
@@ -139,14 +143,12 @@ export default function AssignVideosPage() {
             ))}
           </div>
 
-          <button
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
-            onClick={assignVideos}
-          >
+          <button className="button-primary mt-4 rounded-xl px-4 py-2 text-sm font-medium" onClick={assignVideos}>
             Assign Videos Randomly
           </button>
         </>
       ) : null}
+      </section>
     </div>
   );
 }

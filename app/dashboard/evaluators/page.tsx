@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const WORKER_API_BASE_URL =
   process.env.NEXT_PUBLIC_WORKER_API_BASE_URL ||
@@ -66,51 +66,59 @@ export default function EvaluatorsPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded border border-zinc-800 bg-zinc-900 p-6">
-        <h1 className="text-2xl font-semibold">Evaluators</h1>
-        <div className="text-zinc-400 mt-1">Grouped by project.</div>
-      </div>
+    <div className="space-y-5">
+      <section className="rounded-2xl p-6 md:p-7">
+        <h1 className="text-3xl font-semibold tracking-tight">Evaluators</h1>
+        <p className="text-sm text-muted mt-2">Assignments grouped by project.</p>
+      </section>
 
-      {loading ? <div className="rounded border border-zinc-800 bg-zinc-900 p-6">Loading...</div> : null}
-      {error ? <div className="rounded border border-zinc-800 bg-zinc-900 p-6 text-red-400">{error}</div> : null}
-      {success ? <div className="rounded border border-zinc-800 bg-zinc-900 p-6 text-green-400">{success}</div> : null}
+      {loading ? <div className="surface-card rounded-2xl p-6">Loading...</div> : null}
+      {error ? <div className="surface-card rounded-2xl p-6 text-rose-600">{error}</div> : null}
+      {success ? <div className="surface-card rounded-2xl p-6 text-emerald-600">{success}</div> : null}
 
       {!loading && !error && groups.length === 0 ? (
-        <div className="rounded border border-zinc-800 bg-zinc-900 p-6 text-zinc-400">No projects found.</div>
+        <div className="surface-card rounded-2xl p-6 text-muted">No projects found.</div>
       ) : null}
 
       {groups.map((group) => (
-        <section key={group.project.id} className="rounded border border-zinc-800 bg-zinc-900 p-6">
-          <div className="flex items-center justify-between mb-3">
+        <section key={group.project.id} className="surface-card rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-3 gap-2">
             <div>
-              <h2 className="text-xl font-semibold">{group.project.name}</h2>
-              <div className="text-sm text-zinc-400">
-                Total evaluators: {group.summary.totalEvaluators}
-              </div>
+              <h2 className="text-lg font-semibold">{group.project.name}</h2>
+              <div className="text-sm text-muted">Total evaluators: {group.summary.totalEvaluators}</div>
             </div>
             <Link
               href={`/dashboard/projects/${group.project.id}`}
-              className="text-blue-400 underline text-sm"
+              className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2 text-sm font-medium text-indigo-700 transition hover:from-indigo-100"
             >
               Open Project
             </Link>
           </div>
 
           {group.evaluators.length === 0 ? (
-            <div className="text-zinc-400">No evaluators assigned for this project.</div>
+            <div className="text-sm text-muted">No evaluators assigned for this project.</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               {group.evaluators.map((evaluator) => (
-                <div key={evaluator.id} className="rounded border border-zinc-700 bg-zinc-800 p-3">
-                  <div className="font-semibold">{evaluator.name || evaluator.email}</div>
-                  <div className="text-sm text-zinc-400 mt-1">{evaluator.email}</div>
+                <div key={evaluator.id} className="surface-muted rounded-xl p-4 relative">
                   <button
-                    className="mt-2 bg-red-600 text-white px-2 py-1 rounded text-xs"
+                    className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-lg text-rose-500 transition hover:bg-rose-50 hover:text-rose-600"
                     onClick={() => removeEvaluator(group.project.id, evaluator.id)}
+                    aria-label="Remove evaluator from project"
+                    title="Remove evaluator"
                   >
-                    Remove from Project
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4h8v2" />
+                      <path d="M19 6l-1 14H6L5 6" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                    </svg>
                   </button>
+                  <div className="pr-10">
+                    <div className="font-semibold">{evaluator.name || evaluator.email}</div>
+                    <div className="text-sm text-muted mt-1">{evaluator.email}</div>
+                  </div>
                 </div>
               ))}
             </div>

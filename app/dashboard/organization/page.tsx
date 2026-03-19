@@ -9,9 +9,9 @@ export default async function ManageOrganizationPage() {
 
   if (user.role !== "admin") {
     return (
-      <div className="max-w-3xl rounded border border-zinc-800 bg-zinc-900 p-6">
-        <h1 className="text-2xl font-semibold mb-2">Manage Organization</h1>
-        <div className="text-zinc-400">Only admins can manage organization settings.</div>
+      <div className="max-w-3xl rounded-2xl p-6 md:p-7">
+        <h1 className="text-3xl font-semibold tracking-tight mb-2">Manage Organization</h1>
+        <div className="text-muted">Only admins can manage organization settings.</div>
       </div>
     );
   }

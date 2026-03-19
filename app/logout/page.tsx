@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 
-const WORKER_API_BASE_URL = process.env.NEXT_PUBLIC_WORKER_API_BASE_URL || process.env.WORKER_API_BASE_URL || "http://localhost:8787";
+const WORKER_API_BASE_URL =
+  process.env.NEXT_PUBLIC_WORKER_API_BASE_URL || process.env.WORKER_API_BASE_URL || "http://localhost:8787";
 
 export default function LogoutPage() {
   useEffect(() => {
@@ -13,9 +14,13 @@ export default function LogoutPage() {
       window.location.href = "/login";
     });
   }, []);
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-8 text-center">
-      Logging out...
+    <div className="min-h-dvh px-6 py-10 md:px-10 flex items-center justify-center">
+      <div className="surface-card rounded-2xl p-8 text-center w-full max-w-md">
+        <div className="text-xl font-semibold">Signing you out</div>
+        <div className="text-sm text-muted mt-2">Cleaning up your session securely...</div>
+      </div>
     </div>
   );
 }

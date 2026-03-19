@@ -42,6 +42,37 @@ async function getOrganizationAdmins(db: any, organizationId: number) {
   return admins;
 }
 
+async function enrichEvaluatorsWithProfileName(db: any, evaluators: any[]) {
+  if (!evaluators.length) return [];
+
+  const userIds = [...new Set(evaluators.map((evaluator: any) => evaluator.userId).filter(Boolean))];
+  const emails = [...new Set(evaluators.map((evaluator: any) => evaluator.email).filter(Boolean))];
+
+  const usersById = userIds.length
+    ? await db.select().from(schema.users).where(inArray(schema.users.id, userIds))
+    : [];
+  const usersByEmail = emails.length
+    ? await db.select().from(schema.users).where(inArray(schema.users.email, emails))
+    : [];
+  const users = [...usersById, ...usersByEmail];
+
+  const userNameById = new Map<number, string>(
+    users.map((profileUser: any) => [profileUser.id, profileUser.name || ""])
+  );
+  const userNameByEmail = new Map<string, string>(
+    users.map((profileUser: any) => [profileUser.email, profileUser.name || ""])
+  );
+
+  return evaluators.map((evaluator: any) => ({
+    ...evaluator,
+    name:
+      (evaluator.userId ? userNameById.get(evaluator.userId) : null) ||
+      userNameByEmail.get(evaluator.email) ||
+      evaluator.name ||
+      null,
+  }));
+}
+
 export async function handleLogout(req: Request, env: Env, db: any) {
   const corsHeaders = getCorsHeaders(req, env);
   return new Response(JSON.stringify({ success: true }), {
@@ -164,6 +195,36 @@ export async function handleUserProfile(req: Request, env: Env, db: any) {
     let message = "Internal server error";
     if (e instanceof Error) message = e.message;
     console.error("/api/user/profile error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleUpdateUserProfile(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const body = await req.json();
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    if (!name) {
+      return json({ error: "Name is required" }, 400, corsHeaders);
+    }
+    if (name.length > 80) {
+      return json({ error: "Name must be 80 characters or fewer" }, 400, corsHeaders);
+    }
+
+    await db.update(schema.users).set({ name }).where(eq(schema.users.id, user.id));
+    const updatedRows = await db.select().from(schema.users).where(eq(schema.users.id, user.id));
+    const updatedUser = updatedRows[0];
+
+    return json({ user: sanitizeUser(updatedUser) }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/user/profile update error:", e);
     return json({ error: message }, 500, corsHeaders);
   }
 }
@@ -465,12 +526,40 @@ export async function handleProjectsList(req: Request, env: Env, db: any) {
       .from(schema.projects)
       .where(eq(schema.projects.organizationId, user.organizationId));
 
+    const projectIds = projects.map((project: any) => project.id);
+    const submissionCountByProjectId = new Map<number, number>();
+    const evaluatorCountByProjectId = new Map<number, number>();
+
+    if (projectIds.length > 0) {
+      const submissions = await db
+        .select()
+        .from(schema.projectFormSubmissions)
+        .where(inArray(schema.projectFormSubmissions.projectId, projectIds));
+      submissions.forEach((submission: any) => {
+        const existing = submissionCountByProjectId.get(submission.projectId) || 0;
+        submissionCountByProjectId.set(submission.projectId, existing + 1);
+      });
+
+      const projectEvaluators = await db
+        .select()
+        .from(schema.projectEvaluators)
+        .where(inArray(schema.projectEvaluators.projectId, projectIds));
+      projectEvaluators.forEach((projectEvaluator: any) => {
+        const existing = evaluatorCountByProjectId.get(projectEvaluator.projectId) || 0;
+        evaluatorCountByProjectId.set(projectEvaluator.projectId, existing + 1);
+      });
+    }
+
     const totalProjects = projects.length;
     const activeProjects = projects.filter((project: any) => project.status === "active").length;
 
     return json(
       {
-        projects,
+        projects: projects.map((project: any) => ({
+          ...project,
+          submissionsCount: submissionCountByProjectId.get(project.id) || 0,
+          evaluatorsCount: evaluatorCountByProjectId.get(project.id) || 0,
+        })),
         summary: {
           totalProjects,
           activeProjects,
@@ -502,6 +591,7 @@ export async function handleCreateProject(req: Request, env: Env, db: any) {
     if (!projectName) {
       return json({ error: "Project name is required" }, 400, corsHeaders);
     }
+    const nowIso = new Date().toISOString();
 
     const [created] = await db
       .insert(schema.projects)
@@ -511,6 +601,8 @@ export async function handleCreateProject(req: Request, env: Env, db: any) {
         description: projectDescription,
         status: "active",
         createdBy: user.id,
+        createdAt: nowIso,
+        updatedAt: nowIso,
       })
       .returning();
 
@@ -686,6 +778,12 @@ function normalizeProjectFormFields(raw: unknown) {
     .filter((field) => field.label);
 }
 
+function isMandatoryVideoField(field: any) {
+  if (!field || field.type !== "attachment" || !field.required) return false;
+  const allowedTypes = parseAttachmentTypes(field.attachmentTypes);
+  return allowedTypes.includes("video");
+}
+
 export async function handleProjectOverview(req: Request, env: Env, db: any, projectId: number) {
   const corsHeaders = getCorsHeaders(req, env);
   try {
@@ -703,14 +801,10 @@ export async function handleProjectOverview(req: Request, env: Env, db: any, pro
     const submissionVideos = await getProjectSubmissionAttachmentVideos(db, projectId);
     const evaluatorIds = projectEvaluators.map((row: any) => row.evaluatorId);
 
-    const evaluators = evaluatorIds.length
-      ? await Promise.all(
-          evaluatorIds.map(async (evaluatorId: number) => {
-            const rows = await db.select().from(schema.evaluators).where(eq(schema.evaluators.id, evaluatorId));
-            return rows[0];
-          })
-        )
+    const evaluatorRows = evaluatorIds.length
+      ? await db.select().from(schema.evaluators).where(inArray(schema.evaluators.id, evaluatorIds))
       : [];
+    const evaluators = await enrichEvaluatorsWithProfileName(db, evaluatorRows);
 
     const totalVideos = submissionVideos.length;
     const videosEvaluated = submissionVideos.filter(
@@ -931,21 +1025,40 @@ export async function handleProjectRubrics(req: Request, env: Env, db: any, proj
     }
 
     const body = await req.json();
-    const rubrics = Array.isArray(body.rubrics) ? body.rubrics : [];
+    const incomingRubrics = Array.isArray(body.rubrics) ? body.rubrics : [];
+    const normalizedRubrics = incomingRubrics
+      .map((rubric: any, index: number) => {
+        const title = typeof rubric.title === "string" ? rubric.title.trim() : "";
+        const description = typeof rubric.description === "string" ? rubric.description.trim() : null;
+        const weightValue = Number.isFinite(Number(rubric.weight)) ? Number(rubric.weight) : 0;
+        const weight = Math.max(0, Math.min(100, Math.round(weightValue)));
+        return {
+          title,
+          description,
+          weight,
+          sortOrder: index,
+        };
+      })
+      .filter((rubric: any) => rubric.title);
+
+    if (normalizedRubrics.length === 0) {
+      return json({ error: "Add at least one rubric." }, 400, corsHeaders);
+    }
+
+    const totalWeight = normalizedRubrics.reduce((sum: number, rubric: any) => sum + rubric.weight, 0);
+    if (totalWeight !== 100) {
+      return json({ error: `Total rubric weight must equal 100. Current total: ${totalWeight}.` }, 400, corsHeaders);
+    }
 
     await db.delete(schema.projectRubrics).where(eq(schema.projectRubrics.projectId, projectId));
-    for (let i = 0; i < rubrics.length; i += 1) {
-      const rubric = rubrics[i];
-      const title = typeof rubric.title === "string" ? rubric.title.trim() : "";
-      if (!title) continue;
-      const description = typeof rubric.description === "string" ? rubric.description.trim() : null;
-      const weightValue = Number.isFinite(Number(rubric.weight)) ? Number(rubric.weight) : 0;
+    for (let i = 0; i < normalizedRubrics.length; i += 1) {
+      const rubric = normalizedRubrics[i];
       await db.insert(schema.projectRubrics).values({
         projectId,
-        title,
-        description,
-        weight: weightValue,
-        sortOrder: i,
+        title: rubric.title,
+        description: rubric.description,
+        weight: rubric.weight,
+        sortOrder: rubric.sortOrder,
       });
     }
 
@@ -993,6 +1106,13 @@ export async function handleProjectForm(req: Request, env: Env, db: any, project
 
     const body = await req.json();
     const fields = normalizeProjectFormFields(body.fields);
+    if (!fields.some((field: any) => isMandatoryVideoField(field))) {
+      return json(
+        { error: "Form must include at least one required attachment field that accepts video." },
+        400,
+        corsHeaders
+      );
+    }
     const fieldsJson = JSON.stringify(fields);
 
     const existing = await db
@@ -1042,6 +1162,13 @@ export async function handleProjectFormTestSubmit(
     const formFields = formConfig?.fieldsJson
       ? normalizeProjectFormFields(JSON.parse(formConfig.fieldsJson))
       : [];
+    if (!formFields.some((field: any) => isMandatoryVideoField(field))) {
+      return json(
+        { error: "Project form is missing a mandatory video field. Update the form first." },
+        400,
+        corsHeaders
+      );
+    }
 
     const formData = await req.formData();
     const fieldsPayloadRaw = formData.get("fields");
@@ -1054,20 +1181,21 @@ export async function handleProjectFormTestSubmit(
       }
     }
 
-    const [submission] = await db
-      .insert(schema.projectFormSubmissions)
-      .values({
-        projectId,
-        submitterUserId: user.id,
-        fieldsJson: JSON.stringify(fieldsPayload),
-      })
-      .returning();
-
     const attachmentFields = formFields
       .map((field: any, index: number) => ({ ...field, index }))
       .filter((field: any) => field.type === "attachment");
+    const mandatoryVideoFieldIndexes = new Set(
+      attachmentFields
+        .filter((field: any) => isMandatoryVideoField(field))
+        .map((field: any) => field.index)
+    );
 
-    let attachmentCount = 0;
+    const attachmentUploadPlan: Array<{
+      formFieldKey: string;
+      file: File;
+      detectedType: AttachmentType;
+    }> = [];
+
     for (const field of attachmentFields) {
       const formFieldKey = `attachment_${field.index}`;
       const files = formData.getAll(formFieldKey).filter((entry) => entry instanceof File) as File[];
@@ -1075,6 +1203,8 @@ export async function handleProjectFormTestSubmit(
       if (field.required && files.length === 0) {
         return json({ error: `Attachment required for field '${field.label}'.` }, 400, corsHeaders);
       }
+
+      let hasVideoFileInField = false;
 
       for (const file of files) {
         if (!file.name || file.size === 0) continue;
@@ -1091,28 +1221,55 @@ export async function handleProjectFormTestSubmit(
             corsHeaders
           );
         }
+        if (detectedType === "video") hasVideoFileInField = true;
 
-        const key = `project-form-submissions/${projectId}/${submission.id}/${crypto.randomUUID()}-${file.name}`;
-        const buffer = await file.arrayBuffer();
-        await env.BUCKET.put(key, buffer, {
-          httpMetadata: {
-            contentType: file.type || undefined,
-          },
-        });
-
-        await db.insert(schema.projectFormSubmissionAttachments).values({
-          submissionId: submission.id,
+        attachmentUploadPlan.push({
           formFieldKey,
-          r2Key: key,
-          fileName: file.name,
-          fileSize: file.size,
-          mimeType: file.type || "application/octet-stream",
-          attachmentType: detectedType,
-          assignedEvaluatorId: null,
-          reviewStatus: "unassigned",
+          file,
+          detectedType,
         });
-        attachmentCount += 1;
       }
+
+      if (mandatoryVideoFieldIndexes.has(field.index) && !hasVideoFileInField) {
+        return json(
+          { error: `Field '${field.label}' requires at least one video file.` },
+          400,
+          corsHeaders
+        );
+      }
+    }
+
+    const [submission] = await db
+      .insert(schema.projectFormSubmissions)
+      .values({
+        projectId,
+        submitterUserId: user.id,
+        fieldsJson: JSON.stringify(fieldsPayload),
+      })
+      .returning();
+
+    let attachmentCount = 0;
+    for (const item of attachmentUploadPlan) {
+      const key = `project-form-submissions/${projectId}/${submission.id}/${crypto.randomUUID()}-${item.file.name}`;
+      const buffer = await item.file.arrayBuffer();
+      await env.BUCKET.put(key, buffer, {
+        httpMetadata: {
+          contentType: item.file.type || undefined,
+        },
+      });
+
+      await db.insert(schema.projectFormSubmissionAttachments).values({
+        submissionId: submission.id,
+        formFieldKey: item.formFieldKey,
+        r2Key: key,
+        fileName: item.file.name,
+        fileSize: item.file.size,
+        mimeType: item.file.type || "application/octet-stream",
+        attachmentType: item.detectedType,
+        assignedEvaluatorId: null,
+        reviewStatus: "unassigned",
+      });
+      attachmentCount += 1;
     }
 
     return json(
@@ -1136,10 +1293,11 @@ export async function handleOrganizationEvaluators(req: Request, env: Env, db: a
       return json({ error: "Unauthorized" }, 403, corsHeaders);
     }
 
-    const evaluators = await db
+    const evaluatorRows = await db
       .select()
       .from(schema.evaluators)
       .where(eq(schema.evaluators.organizationId, user.organizationId));
+    const evaluators = await enrichEvaluatorsWithProfileName(db, evaluatorRows);
 
     return json({ evaluators }, 200, corsHeaders);
   } catch (e) {
@@ -1298,12 +1456,13 @@ export async function handleAdminEvaluatorsGrouped(req: Request, env: Env, db: a
           .where(eq(schema.projectEvaluators.projectId, project.id));
         const evaluatorIds = assignments.map((assignment: any) => assignment.evaluatorId);
 
-        const evaluators = evaluatorIds.length
+        const evaluatorRows = evaluatorIds.length
           ? await db
               .select()
               .from(schema.evaluators)
               .where(inArray(schema.evaluators.id, evaluatorIds))
           : [];
+        const evaluators = await enrichEvaluatorsWithProfileName(db, evaluatorRows);
 
         return {
           project: {
@@ -1347,9 +1506,10 @@ export async function handleProjectVideoAssignmentContext(
       .from(schema.projectEvaluators)
       .where(eq(schema.projectEvaluators.projectId, projectId));
     const evaluatorIds = assignments.map((a: any) => a.evaluatorId);
-    const evaluators = evaluatorIds.length
+    const evaluatorRows = evaluatorIds.length
       ? await db.select().from(schema.evaluators).where(inArray(schema.evaluators.id, evaluatorIds))
       : [];
+    const evaluators = await enrichEvaluatorsWithProfileName(db, evaluatorRows);
 
     const videos = await getProjectSubmissionAttachmentVideos(db, projectId);
     const unassignedVideos = videos.filter(

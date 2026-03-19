@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 
 const WORKER_API_BASE_URL =
   process.env.NEXT_PUBLIC_WORKER_API_BASE_URL ||
@@ -40,44 +40,50 @@ export default function ReviewQueuePage() {
     load();
   }, []);
 
-  return (
-    <div className="space-y-4">
-      <div className="rounded border border-zinc-800 bg-zinc-900 p-6">
-        <h1 className="text-2xl font-semibold">Review Queue</h1>
-        <div className="text-zinc-400 mt-1">Pending videos assigned to you.</div>
-      </div>
+  const byProject = useMemo(() => {
+    const grouped = new Map<string, QueueItem[]>();
+    queue.forEach((item) => {
+      const existing = grouped.get(item.projectName) || [];
+      existing.push(item);
+      grouped.set(item.projectName, existing);
+    });
+    return [...grouped.entries()];
+  }, [queue]);
 
-      {loading ? <div className="rounded border border-zinc-800 bg-zinc-900 p-6">Loading...</div> : null}
-      {error ? <div className="rounded border border-zinc-800 bg-zinc-900 p-6 text-red-400">{error}</div> : null}
+  return (
+    <div className="space-y-5">
+      <section className="rounded-2xl p-6 md:p-7">
+        <h1 className="text-3xl font-semibold tracking-tight">Review Queue</h1>
+        <p className="text-sm text-muted mt-2">Pending videos assigned to you, grouped by project.</p>
+      </section>
+
+      {loading ? <div className="surface-card rounded-2xl p-6">Loading...</div> : null}
+      {error ? <div className="surface-card rounded-2xl p-6 text-rose-600">{error}</div> : null}
 
       {!loading && !error && queue.length === 0 ? (
-        <div className="rounded border border-zinc-800 bg-zinc-900 p-6 text-zinc-400">
-          No pending videos in your queue.
-        </div>
+        <div className="surface-card rounded-2xl p-6 text-muted">No pending videos in your queue.</div>
       ) : null}
 
-      {queue.length > 0 ? (
-        <div className="space-y-3">
-          {queue.map((item) => (
-            <div key={item.id} className="rounded border border-zinc-800 bg-zinc-900 p-4">
-              <div className="flex items-center justify-between">
+      {byProject.map(([projectName, items]) => (
+        <section key={projectName} className="surface-card rounded-2xl p-5">
+          <h2 className="text-lg font-semibold">{projectName}</h2>
+          <div className="text-xs text-muted mt-1">{items.length} video(s) pending</div>
+
+          <div className="mt-3 space-y-2">
+            {items.map((item) => (
+              <div key={item.id} className="surface-muted rounded-xl p-4 flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-semibold">{item.title}</div>
-                  <div className="text-sm text-zinc-400 mt-1">
-                    {item.projectName} • {item.status}
-                  </div>
+                  <div className="font-medium">{item.title}</div>
+                  <div className="text-xs text-muted mt-1">Status: {item.status}</div>
                 </div>
-                <Link
-                  href={`/dashboard/review-queue/${item.id}`}
-                  className="bg-blue-600 text-white px-3 py-2 rounded text-sm"
-                >
+                <Link href={`/dashboard/review-queue/${item.id}`} className="button-primary rounded-lg px-3 py-2 text-xs font-medium whitespace-nowrap">
                   Review Video
                 </Link>
               </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

@@ -88,17 +88,21 @@ export default function TestProjectFormPage() {
   }
 
   return (
-    <div className="rounded border border-zinc-800 bg-zinc-900 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Temporary Test Form</h1>
-        <Link href={`/dashboard/projects/${projectId}/form`} className="text-blue-400 underline text-sm">
+    <div className="space-y-5">
+      <section className="rounded-2xl p-6 md:p-7 flex items-center justify-between gap-2">
+        <h1 className="text-3xl font-semibold tracking-tight">Temporary Test Form</h1>
+        <Link
+          href={`/dashboard/projects/${projectId}/form`}
+          className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2 text-sm font-medium text-indigo-700 transition hover:from-indigo-100"
+        >
           Back to Manage Form
         </Link>
-      </div>
+      </section>
 
-      {loading ? <div>Loading form config...</div> : null}
-      {error ? <div className="text-red-400 mb-3">{error}</div> : null}
-      {success ? <div className="text-green-400 mb-3">{success}</div> : null}
+      <section className="surface-card rounded-2xl p-6">
+        {loading ? <div className="text-sm text-muted">Loading form config...</div> : null}
+        {error ? <div className="text-sm text-rose-600 mb-3">{error}</div> : null}
+        {success ? <div className="text-sm text-emerald-600 mb-3">{success}</div> : null}
 
       {!loading ? (
         <form onSubmit={submitTestForm} className="space-y-3">
@@ -111,13 +115,13 @@ export default function TestProjectFormPage() {
               .join(",");
             return (
               <div key={key}>
-                <label className="block text-sm mb-1">
+                <label className="block text-sm mb-1 text-muted">
                   {field.label || "Untitled"} {field.required ? "*" : ""}
                 </label>
                 {field.type === "attachment" ? (
                   <div>
                     <input
-                      className="w-full border border-zinc-700 bg-zinc-800 rounded px-3 py-2"
+                      className="input-base focus-ring w-full rounded-xl px-3 py-2"
                       type="file"
                       multiple
                       required={!!field.required}
@@ -129,20 +133,20 @@ export default function TestProjectFormPage() {
                         }))
                       }
                     />
-                    <div className="text-xs text-zinc-400 mt-1">
+                    <div className="text-xs text-muted mt-1">
                       Allowed: {(field.attachmentTypes || []).length ? field.attachmentTypes?.join(", ") : "none"}
                     </div>
                   </div>
                 ) : field.type === "textarea" ? (
                   <textarea
-                    className="w-full border border-zinc-700 bg-zinc-800 rounded px-3 py-2 min-h-20"
+                    className="input-base focus-ring w-full rounded-xl px-3 py-2 min-h-20"
                     required={!!field.required}
                     value={fieldValues[key] || ""}
                     onChange={(e) => setFieldValue(key, e.target.value)}
                   />
                 ) : (
                   <input
-                    className="w-full border border-zinc-700 bg-zinc-800 rounded px-3 py-2"
+                    className="input-base focus-ring w-full rounded-xl px-3 py-2"
                     type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
                     required={!!field.required}
                     value={fieldValues[key] || ""}
@@ -153,11 +157,12 @@ export default function TestProjectFormPage() {
             );
           })}
 
-          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+          <button type="submit" className="button-primary rounded-xl px-4 py-2 text-sm">
             Submit Test Form
           </button>
         </form>
       ) : null}
+      </section>
     </div>
   );
 }

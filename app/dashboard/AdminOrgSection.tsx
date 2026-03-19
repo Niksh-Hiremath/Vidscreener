@@ -31,7 +31,6 @@ export default function AdminOrgSection({ user }: { user: any }) {
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newAdminName, setNewAdminName] = useState("");
   const [newAdminPassword, setNewAdminPassword] = useState("");
-  const [newAdminPhone, setNewAdminPhone] = useState("");
   const [transferUserId, setTransferUserId] = useState<number | "">("");
 
   const otherAdmins = useMemo(
@@ -99,7 +98,7 @@ export default function AdminOrgSection({ user }: { user: any }) {
           email: newAdminEmail,
           name: newAdminName,
           password: newAdminPassword,
-          phone: newAdminPhone || null,
+          phone: null,
         }),
       });
       const payload = await res.json();
@@ -108,7 +107,6 @@ export default function AdminOrgSection({ user }: { user: any }) {
       setNewAdminEmail("");
       setNewAdminName("");
       setNewAdminPassword("");
-      setNewAdminPhone("");
       await fetchAdmins();
     } catch (e: any) {
       setError(e.message || "Failed to add admin");
@@ -176,45 +174,37 @@ export default function AdminOrgSection({ user }: { user: any }) {
   }
 
   if (loading) {
-    return <div className="max-w-3xl mx-auto mt-20 p-6 border border-zinc-800 bg-zinc-900 rounded shadow">Loading organization dashboard...</div>;
+    return <div className="surface-card rounded-2xl p-6">Loading organization settings...</div>;
   }
 
   if (!data) {
-    return (
-      <div className="max-w-3xl mx-auto mt-20 p-6 border border-zinc-800 bg-zinc-900 rounded shadow">
-        <h1 className="text-2xl mb-4">Admin Dashboard</h1>
-        <div className="text-red-400">{error || "Failed to load dashboard."}</div>
-      </div>
-    );
+    return <div className="surface-card rounded-2xl p-6 text-rose-600">{error || "Failed to load dashboard."}</div>;
   }
 
   return (
-    <div className="max-w-3xl mx-auto mt-12 p-6 border border-zinc-800 bg-zinc-900 rounded shadow">
-      <h1 className="text-2xl mb-2">Manage Organization</h1>
-      <div className="mb-1">Welcome, <b>{user?.name || user?.email}</b>!</div>
-      <div className="mb-1">Organization: <b>{data.organization.name}</b></div>
-      <div className="mb-6">
-        Access Level:{" "}
-        <b>{data.isSuperAdmin ? "Superadmin" : "Admin"}</b>
-      </div>
+    <div className="max-w-4xl space-y-5">
+      <section className="rounded-2xl p-6 md:p-7">
+        <h1 className="text-3xl font-semibold tracking-tight">Manage Organization</h1>
+        <div className="text-sm text-muted mt-2">Organization: {data.organization.name}</div>
+        <div className="text-sm text-muted">Access: {data.isSuperAdmin ? "Superadmin" : "Admin"}</div>
+      </section>
 
-      {error && <div className="text-red-400 mb-4">{error}</div>}
-      {success && <div className="text-green-600 mb-4">{success}</div>}
+      {error ? <div className="surface-card rounded-2xl p-4 text-sm text-rose-600">{error}</div> : null}
+      {success ? <div className="surface-card rounded-2xl p-4 text-sm text-emerald-600">{success}</div> : null}
 
-      <section className="mb-8">
-        <h2 className="text-xl mb-2">Organization Admins</h2>
+      <section className="surface-card rounded-2xl p-6">
+        <h2 className="text-lg font-semibold mb-3">Organization Admins</h2>
         <div className="space-y-2">
           {data.admins.map((admin) => (
-            <div key={admin.id} className="border border-zinc-700 bg-zinc-800 rounded p-3 flex items-center justify-between gap-3">
+            <div key={admin.id} className="surface-muted rounded-xl p-3 flex items-center justify-between gap-3">
               <div>
-                <div><b>{admin.name || admin.email}</b> {admin.isSuperAdmin ? "(Superadmin)" : ""}</div>
-                <div className="text-sm text-zinc-400">{admin.email}</div>
+                <div className="font-medium">
+                  {admin.name || admin.email} {admin.isSuperAdmin ? "(Superadmin)" : ""}
+                </div>
+                <div className="text-sm text-muted">{admin.email}</div>
               </div>
               {data.isSuperAdmin && !admin.isSuperAdmin ? (
-                <button
-                  className="bg-red-600 text-white px-3 py-1 rounded"
-                  onClick={() => removeAdmin(admin.id)}
-                >
+                <button className="button-danger rounded-lg px-3 py-1.5 text-xs" onClick={() => removeAdmin(admin.id)}>
                   Remove
                 </button>
               ) : null}
@@ -225,29 +215,29 @@ export default function AdminOrgSection({ user }: { user: any }) {
 
       {data.isSuperAdmin ? (
         <>
-          <section className="mb-8">
-            <h2 className="text-xl mb-2">Rename Organization</h2>
-            <form onSubmit={submitRename} className="flex flex-col gap-2 sm:flex-row">
+          <section className="surface-card rounded-2xl p-6">
+            <h2 className="text-lg font-semibold mb-3">Rename Organization</h2>
+            <form onSubmit={submitRename} className="flex flex-col sm:flex-row gap-2">
               <input
                 value={renameName}
                 onChange={(e) => setRenameName(e.target.value)}
-                className="border border-zinc-700 bg-zinc-800 rounded px-3 py-2 flex-1"
+                className="input-base focus-ring rounded-xl px-3 py-2 flex-1"
                 placeholder="Organization name"
                 required
               />
-              <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+              <button type="submit" className="button-primary rounded-xl px-4 py-2 text-sm">
                 Save Name
               </button>
             </form>
           </section>
 
-          <section className="mb-8">
-            <h2 className="text-xl mb-2">Add Admin</h2>
-            <form onSubmit={submitAddAdmin} className="flex flex-col gap-2">
+          <section className="surface-card rounded-2xl p-6">
+            <h2 className="text-lg font-semibold mb-3">Add Admin</h2>
+            <form onSubmit={submitAddAdmin} className="space-y-2">
               <input
                 value={newAdminEmail}
                 onChange={(e) => setNewAdminEmail(e.target.value)}
-                className="border border-zinc-700 bg-zinc-800 rounded px-3 py-2"
+                className="input-base focus-ring rounded-xl px-3 py-2 w-full"
                 type="email"
                 placeholder="Admin email"
                 required
@@ -255,30 +245,28 @@ export default function AdminOrgSection({ user }: { user: any }) {
               <input
                 value={newAdminName}
                 onChange={(e) => setNewAdminName(e.target.value)}
-                className="border border-zinc-700 bg-zinc-800 rounded px-3 py-2"
+                className="input-base focus-ring rounded-xl px-3 py-2 w-full"
                 type="text"
-                placeholder="Name (required for new user)"
+                placeholder="Name"
               />
               <input
                 value={newAdminPassword}
                 onChange={(e) => setNewAdminPassword(e.target.value)}
-                className="border border-zinc-700 bg-zinc-800 rounded px-3 py-2"
+                className="input-base focus-ring rounded-xl px-3 py-2 w-full"
                 type="password"
-                placeholder="Password (required for new user)"
+                placeholder="Temporary password"
               />
-              <div className="sm:col-span-2">
-                <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">
-                  Add Admin
-                </button>
-              </div>
+              <button type="submit" className="button-primary rounded-xl px-4 py-2 text-sm">
+                Add Admin
+              </button>
             </form>
           </section>
 
-          <section className="mb-8">
-            <h2 className="text-xl mb-2">Transfer Superadmin</h2>
-            <form onSubmit={transferSuperadmin} className="flex flex-col gap-2 sm:flex-row">
+          <section className="surface-card rounded-2xl p-6">
+            <h2 className="text-lg font-semibold mb-3">Transfer Superadmin</h2>
+            <form onSubmit={transferSuperadmin} className="flex flex-col sm:flex-row gap-2">
               <select
-                className="border border-zinc-700 bg-zinc-800 rounded px-3 py-2 flex-1"
+                className="input-base focus-ring rounded-xl px-3 py-2 flex-1"
                 value={transferUserId}
                 onChange={(e) => setTransferUserId(e.target.value ? Number(e.target.value) : "")}
               >
@@ -289,11 +277,7 @@ export default function AdminOrgSection({ user }: { user: any }) {
                   </option>
                 ))}
               </select>
-              <button
-                type="submit"
-                className="bg-amber-600 text-white px-4 py-2 rounded"
-                disabled={otherAdmins.length === 0}
-              >
+              <button type="submit" className="button-secondary rounded-xl px-4 py-2 text-sm" disabled={otherAdmins.length === 0}>
                 Transfer
               </button>
             </form>
@@ -301,17 +285,14 @@ export default function AdminOrgSection({ user }: { user: any }) {
         </>
       ) : null}
 
-      <section>
-        <h2 className="text-xl mb-2">Exit Organization</h2>
-        <div className="text-sm text-zinc-400 mb-2">
+      <section className="surface-card rounded-2xl p-6">
+        <h2 className="text-lg font-semibold mb-2">Exit Organization</h2>
+        <p className="text-sm text-muted mb-3">
           {data.isSuperAdmin
             ? "As superadmin, transfer superadmin to another admin before exiting."
             : "You can exit this organization at any time."}
-        </div>
-        <button
-          className="bg-red-700 text-white px-4 py-2 rounded"
-          onClick={exitOrganization}
-        >
+        </p>
+        <button className="button-danger rounded-xl px-4 py-2 text-sm" onClick={exitOrganization}>
           Exit Organization
         </button>
       </section>

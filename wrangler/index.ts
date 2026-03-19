@@ -6,6 +6,7 @@ import {
   handleLogout,
   handleCreateOrganization,
   handleUserProfile,
+  handleUpdateUserProfile,
   handleOrganizationAdmins,
   handleAddOrganizationAdmin,
   handleRemoveOrganizationAdmin,
@@ -71,6 +72,9 @@ export default {
     // User profile (with org info and role)
     if (url.pathname === "/api/user/profile" && req.method === "GET") {
       return handleUserProfile(req, env, db);
+    }
+    if (url.pathname === "/api/user/profile" && req.method === "POST") {
+      return handleUpdateUserProfile(req, env, db);
     }
 
     // Organization admin management

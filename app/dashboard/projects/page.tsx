@@ -13,6 +13,9 @@ type AdminProject = {
   name: string;
   description: string | null;
   status: string;
+  createdAt: string;
+  submissionsCount: number;
+  evaluatorsCount: number;
 };
 
 type EvaluatorProject = {
@@ -44,7 +47,7 @@ export default function ProjectsPage() {
   }, []);
 
   if (loadingRole) {
-    return <div className="rounded border border-zinc-800 bg-zinc-900 p-6">Loading...</div>;
+    return <div className="surface-card rounded-2xl p-6">Loading...</div>;
   }
 
   if (role === "reviewer" || role === "evaluator") {
@@ -63,6 +66,13 @@ function AdminProjectsSection() {
   const [activeProjects, setActiveProjects] = useState(0);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  function formatProjectDate(createdAt: string) {
+    const date = new Date(createdAt);
+    if (Number.isNaN(date.getTime())) return createdAt;
+    return date.toLocaleDateString("en-US");
+  }
 
   async function loadProjects() {
     setLoading(true);
@@ -112,69 +122,103 @@ function AdminProjectsSection() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded border border-zinc-800 bg-zinc-900 p-6">
-        <h1 className="text-2xl font-semibold mb-4">Projects</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="rounded border border-zinc-700 bg-zinc-800 p-4">
-            <div className="text-sm text-zinc-400">Total Projects</div>
-            <div className="text-2xl font-semibold">{totalProjects}</div>
+      <section className="rounded-2xl p-6 md:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Projects</h1>
+            <p className="text-sm text-muted mt-2">Manage all your evaluation projects.</p>
           </div>
-          <div className="rounded border border-zinc-700 bg-zinc-800 p-4">
-            <div className="text-sm text-zinc-400">Active Projects</div>
-            <div className="text-2xl font-semibold">{activeProjects}</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-xl font-semibold mb-3">Create Project</h2>
-        <form onSubmit={createProject} className="space-y-3">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border border-zinc-700 bg-zinc-800 rounded px-3 py-2"
-            placeholder="Project name"
-            required
-          />
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full border border-zinc-700 bg-zinc-800 rounded px-3 py-2 min-h-24"
-            placeholder="Project description"
-          />
-          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-            Create Project
+          <button
+            type="button"
+            onClick={() => setShowCreateForm((prev) => !prev)}
+            className="button-primary rounded-xl px-5 py-2.5 text-sm font-semibold"
+          >
+            {showCreateForm ? "Close" : "+ New Project"}
           </button>
-        </form>
-        {error ? <div className="mt-3 text-red-400">{error}</div> : null}
-        {success ? <div className="mt-3 text-green-400">{success}</div> : null}
-      </div>
+        </div>
+      </section>
 
-      <div className="rounded border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-xl font-semibold mb-3">Project Grid</h2>
-        {loading ? <div>Loading projects...</div> : null}
-        {!loading && projects.length === 0 ? <div className="text-zinc-400">No projects yet.</div> : null}
+      <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+        <div className="surface-card rounded-2xl p-6">
+          <div className="text-[15px] text-slate-600">Total Projects</div>
+          <div className="text-5xl leading-none font-semibold mt-2">{totalProjects}</div>
+        </div>
+        <div className="surface-card rounded-2xl p-6">
+          <div className="text-[15px] text-slate-600">Active Projects</div>
+          <div className="text-5xl leading-none font-semibold mt-2">{activeProjects}</div>
+        </div>
+      </section>
+
+      {showCreateForm ? (
+        <section className="surface-card rounded-2xl p-6">
+          <h2 className="text-xl font-semibold">Create Project</h2>
+          <form onSubmit={createProject} className="space-y-3 mt-4">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input-base focus-ring w-full rounded-xl px-3 py-2.5"
+              placeholder="Project name"
+              required
+            />
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="input-base focus-ring w-full rounded-xl px-3 py-2.5 min-h-24"
+              placeholder="Project description"
+            />
+            <div className="flex gap-2">
+              <button type="submit" className="button-primary rounded-xl px-4 py-2 text-sm font-medium">
+                Create Project
+              </button>
+              <button
+                type="button"
+                className="button-secondary rounded-xl px-4 py-2 text-sm font-medium"
+                onClick={() => setShowCreateForm(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+          {error ? <div className="mt-3 text-sm text-rose-600">{error}</div> : null}
+          {success ? <div className="mt-3 text-sm text-emerald-600">{success}</div> : null}
+        </section>
+      ) : null}
+
+      <section>
+        {loading ? <div className="mt-3 text-sm text-muted">Loading projects...</div> : null}
+        {!loading && projects.length === 0 ? <div className="mt-3 text-sm text-muted">No projects yet.</div> : null}
         {!loading && projects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-4">
             {projects.map((project) => (
               <Link
                 key={project.id}
                 href={`/dashboard/projects/${project.id}`}
-                className="rounded border border-zinc-700 bg-zinc-800 p-4 hover:border-blue-500 hover:bg-zinc-700 transition-colors"
+                className="surface-card rounded-3xl p-7 transition-all duration-200 ease-out will-change-transform hover:-translate-y-0.5 hover:scale-[1.01] hover:border-indigo-300/70 hover:bg-indigo-50/30 hover:shadow-[0_10px_26px_rgba(79,70,229,0.12)]"
               >
-                <div className="font-semibold">{project.name}</div>
-                <div className="text-sm text-zinc-400 mt-1 line-clamp-3">
-                  {project.description || "No description"}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-semibold text-xl">{project.name}</div>
+                  <div className="text-sm rounded-full bg-emerald-100 text-emerald-700 px-3 py-1.5 capitalize">
+                    {project.status || "active"}
+                  </div>
                 </div>
-                <div className="text-xs mt-3 inline-block rounded bg-zinc-700 px-2 py-1">
-                  {project.status}
+                <div className="mt-7 grid grid-cols-2 gap-6">
+                  <div>
+                    <div className="text-[34px] leading-none font-semibold mt-2">{project.submissionsCount || 0}</div>
+                    <div className="text-sm text-muted mt-1">Submissions</div>
+                  </div>
+                  <div>
+                    <div className="text-[34px] leading-none font-semibold mt-2">{project.evaluatorsCount || 0}</div>
+                    <div className="text-sm text-muted mt-1">Evaluators</div>
+                  </div>
                 </div>
+                <div className="mt-6 border-t border-[var(--border-soft)]" />
+                <div className="text-[15px] text-muted mt-5">Created {formatProjectDate(project.createdAt)}</div>
               </Link>
             ))}
           </div>
         ) : null}
-      </div>
+      </section>
     </div>
   );
 }
@@ -204,45 +248,46 @@ function EvaluatorProjectsSection() {
   }, []);
 
   return (
-    <div className="space-y-4">
-      <div className="rounded border border-zinc-800 bg-zinc-900 p-6">
-        <h1 className="text-2xl font-semibold">My Projects</h1>
-        <div className="text-zinc-400 mt-1">Only projects assigned to you are listed here.</div>
-      </div>
+    <div className="space-y-5">
+      <section className="rounded-2xl p-6 md:p-7">
+        <h1 className="text-3xl font-semibold tracking-tight">My Projects</h1>
+        <p className="text-sm text-muted mt-2">Projects currently assigned to you.</p>
+      </section>
 
-      {loading ? <div className="rounded border border-zinc-800 bg-zinc-900 p-6">Loading...</div> : null}
-      {error ? <div className="rounded border border-zinc-800 bg-zinc-900 p-6 text-red-400">{error}</div> : null}
+      {loading ? <div className="surface-card rounded-2xl p-6">Loading...</div> : null}
+      {error ? <div className="surface-card rounded-2xl p-6 text-rose-600">{error}</div> : null}
 
       {!loading && !error && projects.length === 0 ? (
-        <div className="rounded border border-zinc-800 bg-zinc-900 p-6 text-zinc-400">
-          No assigned projects yet.
-        </div>
+        <div className="surface-card rounded-2xl p-6 text-muted">No assigned projects yet.</div>
       ) : null}
 
       {projects.map((project) => (
-        <div key={project.id} className="rounded border border-zinc-800 bg-zinc-900 p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">{project.name}</h2>
-            <Link href="/dashboard/review-queue" className="text-blue-400 underline text-sm">
+        <section key={project.id} className="surface-card rounded-2xl p-5">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">{project.name}</h2>
+            <Link
+              href="/dashboard/review-queue"
+              className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2 text-sm font-medium text-indigo-700 transition hover:from-indigo-100"
+            >
               Open Queue
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-            <div className="rounded border border-zinc-700 bg-zinc-800 p-3">
-              <div className="text-xs text-zinc-400">Assigned</div>
-              <div className="text-2xl font-semibold">{project.totalAssignedVideos}</div>
-            </div>
-            <div className="rounded border border-zinc-700 bg-zinc-800 p-3">
-              <div className="text-xs text-zinc-400">Pending</div>
-              <div className="text-2xl font-semibold">{project.pendingVideos}</div>
-            </div>
-            <div className="rounded border border-zinc-700 bg-zinc-800 p-3">
-              <div className="text-xs text-zinc-400">Reviewed</div>
-              <div className="text-2xl font-semibold">{project.reviewedVideos}</div>
-            </div>
+            <Stat title="Assigned" value={project.totalAssignedVideos} />
+            <Stat title="Pending" value={project.pendingVideos} />
+            <Stat title="Reviewed" value={project.reviewedVideos} />
           </div>
-        </div>
+        </section>
       ))}
+    </div>
+  );
+}
+
+function Stat({ title, value }: { title: string; value: number }) {
+  return (
+    <div className="surface-muted rounded-xl p-3">
+      <div className="text-xs text-muted">{title}</div>
+      <div className="text-2xl font-semibold mt-1">{value}</div>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core"
 
 export const roles = sqliteTable("roles", {
@@ -10,8 +11,8 @@ export const organizations = sqliteTable("organizations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   createdBy: integer("created_by").notNull().references(() => users.id),
-  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").notNull().default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   deletedAt: text("deleted_at"),
 });
 
@@ -37,8 +38,8 @@ export const projects = sqliteTable("projects", {
   description: text("description"),
   status: text("status").notNull().default("active"),
   createdBy: integer("created_by").notNull().references(() => users.id),
-  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").notNull().default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const projectRubrics = sqliteTable("project_rubrics", {
@@ -48,8 +49,8 @@ export const projectRubrics = sqliteTable("project_rubrics", {
   description: text("description"),
   weight: integer("weight").notNull().default(0),
   sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").notNull().default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const projectForms = sqliteTable("project_forms", {
@@ -57,8 +58,8 @@ export const projectForms = sqliteTable("project_forms", {
   projectId: integer("project_id").notNull().references(() => projects.id).unique(),
   fieldsJson: text("fields_json").notNull().default("[]"),
   allowedAttachmentTypes: text("allowed_attachment_types").notNull().default("[]"),
-  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").notNull().default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const evaluators = sqliteTable("evaluators", {
@@ -68,14 +69,14 @@ export const evaluators = sqliteTable("evaluators", {
   email: text("email").notNull(),
   name: text("name"),
   createdBy: integer("created_by").notNull().references(() => users.id),
-  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const projectEvaluators = sqliteTable("project_evaluators", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   projectId: integer("project_id").notNull().references(() => projects.id),
   evaluatorId: integer("evaluator_id").notNull().references(() => evaluators.id),
-  assignedAt: text("assigned_at").notNull().default("CURRENT_TIMESTAMP"),
+  assignedAt: text("assigned_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const projectVideos = sqliteTable("project_videos", {
@@ -84,7 +85,7 @@ export const projectVideos = sqliteTable("project_videos", {
   title: text("title").notNull(),
   status: text("status").notNull().default("pending_review"),
   reviewedByEvaluatorId: integer("reviewed_by_evaluator_id").references(() => evaluators.id),
-  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const projectFormSubmissions = sqliteTable("project_form_submissions", {
@@ -92,7 +93,7 @@ export const projectFormSubmissions = sqliteTable("project_form_submissions", {
   projectId: integer("project_id").notNull().references(() => projects.id),
   submitterUserId: integer("submitter_user_id").notNull().references(() => users.id),
   fieldsJson: text("fields_json").notNull().default("{}"),
-  submittedAt: text("submitted_at").notNull().default("CURRENT_TIMESTAMP"),
+  submittedAt: text("submitted_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const projectFormSubmissionAttachments = sqliteTable("project_form_submission_attachments", {
@@ -107,7 +108,7 @@ export const projectFormSubmissionAttachments = sqliteTable("project_form_submis
   assignedEvaluatorId: integer("assigned_evaluator_id").references(() => evaluators.id),
   reviewStatus: text("review_status").notNull().default("unassigned"),
   reviewedAt: text("reviewed_at"),
-  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const projectVideoReviews = sqliteTable("project_video_reviews", {
@@ -117,6 +118,6 @@ export const projectVideoReviews = sqliteTable("project_video_reviews", {
   evaluatorId: integer("evaluator_id").notNull().references(() => evaluators.id),
   rubricBreakdownJson: text("rubric_breakdown_json").notNull().default("[]"),
   aiReviewJson: text("ai_review_json"),
-  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").notNull().default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });

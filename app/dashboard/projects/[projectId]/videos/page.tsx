@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import VideoPlayerCard from "../../VideoPlayerCard";
 
 const WORKER_API_BASE_URL =
@@ -44,30 +44,30 @@ export default function ProjectVideosPage() {
   }, [projectId]);
 
   return (
-    <div className="rounded border border-zinc-800 bg-zinc-900 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Project Videos</h1>
-        <Link href={`/dashboard/projects/${projectId}`} className="text-blue-400 underline text-sm">
+    <div className="space-y-5">
+      <section className="rounded-2xl p-6 md:p-7 flex items-center justify-between gap-2">
+        <h1 className="text-3xl font-semibold tracking-tight">Project Videos</h1>
+        <Link
+          href={`/dashboard/projects/${projectId}`}
+          className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2 text-sm font-medium text-indigo-700 transition hover:from-indigo-100"
+        >
           Back to Project
         </Link>
-      </div>
+      </section>
 
-      {loading ? <div>Loading videos...</div> : null}
-      {error ? <div className="text-red-400">{error}</div> : null}
-      {!loading && !error && videos.length === 0 ? <div className="text-zinc-400">No videos yet.</div> : null}
+      <section className="surface-card rounded-2xl p-6">
+        {loading ? <div className="text-sm text-muted">Loading videos...</div> : null}
+        {error ? <div className="text-sm text-rose-600">{error}</div> : null}
+        {!loading && !error && videos.length === 0 ? <div className="text-sm text-muted">No videos yet.</div> : null}
 
-      {videos.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {videos.map((video) => (
-            <VideoPlayerCard
-              key={video.id}
-              title={video.title}
-              status={video.status}
-              playbackUrl={video.playbackUrl}
-            />
-          ))}
-        </div>
-      ) : null}
+        {videos.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {videos.map((video) => (
+              <VideoPlayerCard key={video.id} title={video.title} status={video.status} playbackUrl={video.playbackUrl} />
+            ))}
+          </div>
+        ) : null}
+      </section>
     </div>
   );
 }
