@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const WORKER_API_BASE_URL =
   process.env.NEXT_PUBLIC_WORKER_API_BASE_URL ||
@@ -228,6 +228,18 @@ function EvaluatorProjectsSection() {
   const [error, setError] = useState("");
   const [projects, setProjects] = useState<EvaluatorProject[]>([]);
 
+  const summary = useMemo(() => {
+    return projects.reduce(
+      (acc, project) => {
+        acc.assigned += project.totalAssignedVideos || 0;
+        acc.pending += project.pendingVideos || 0;
+        acc.reviewed += project.reviewedVideos || 0;
+        return acc;
+      },
+      { assigned: 0, pending: 0, reviewed: 0 }
+    );
+  }, [projects]);
+
   useEffect(() => {
     async function load() {
       try {
@@ -261,24 +273,35 @@ function EvaluatorProjectsSection() {
         <div className="surface-card rounded-2xl p-6 text-muted">No assigned projects yet.</div>
       ) : null}
 
-      {projects.map((project) => (
-        <section key={project.id} className="surface-card rounded-2xl p-5">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">{project.name}</h2>
-            <Link
-              href="/dashboard/review-queue"
-              className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2 text-sm font-medium text-indigo-700 transition hover:from-indigo-100"
-            >
-              Open Queue
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-            <Stat title="Assigned" value={project.totalAssignedVideos} />
-            <Stat title="Pending" value={project.pendingVideos} />
-            <Stat title="Reviewed" value={project.reviewedVideos} />
-          </div>
+      {!loading && !error && projects.length > 0 ? (
+        <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          <StatCard title="Assigned Projects" value={projects.length} />
+          <StatCard title="Assigned Videos" value={summary.assigned} />
+          <StatCard title="Pending Reviews" value={summary.pending} />
+          <StatCard title="Reviewed Videos" value={summary.reviewed} />
         </section>
-      ))}
+      ) : null}
+
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {projects.map((project) => (
+          <article key={project.id} className="surface-card rounded-2xl p-6">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-xl font-semibold">{project.name}</h2>
+              <Link
+                href="/dashboard/review-queue"
+                className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2 text-sm font-medium text-indigo-700 transition hover:from-indigo-100"
+              >
+                Open Queue
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+              <Stat title="Assigned" value={project.totalAssignedVideos} />
+              <Stat title="Pending" value={project.pendingVideos} />
+              <Stat title="Reviewed" value={project.reviewedVideos} />
+            </div>
+          </article>
+        ))}
+      </section>
     </div>
   );
 }
@@ -288,6 +311,15 @@ function Stat({ title, value }: { title: string; value: number }) {
     <div className="surface-muted rounded-xl p-3">
       <div className="text-xs text-muted">{title}</div>
       <div className="text-2xl font-semibold mt-1">{value}</div>
+    </div>
+  );
+}
+
+function StatCard({ title, value }: { title: string; value: number }) {
+  return (
+    <div className="surface-card rounded-2xl p-6">
+      <div className="text-[15px] text-slate-600">{title}</div>
+      <div className="text-5xl leading-none font-semibold mt-2">{value}</div>
     </div>
   );
 }

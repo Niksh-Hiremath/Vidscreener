@@ -50,6 +50,11 @@ export default function ReviewQueuePage() {
     return [...grouped.entries()];
   }, [queue]);
 
+  const reviewedCount = useMemo(
+    () => queue.filter((item) => item.status === "reviewed").length,
+    [queue]
+  );
+
   return (
     <div className="space-y-5">
       <section className="rounded-2xl p-6 md:p-7">
@@ -64,26 +69,54 @@ export default function ReviewQueuePage() {
         <div className="surface-card rounded-2xl p-6 text-muted">No pending videos in your queue.</div>
       ) : null}
 
+      {!loading && !error && queue.length > 0 ? (
+        <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          <Metric title="Queue Items" value={queue.length} />
+          <Metric title="Active Projects" value={byProject.length} />
+          <Metric title="Pending" value={queue.length - reviewedCount} />
+          <Metric title="Reviewed" value={reviewedCount} />
+        </section>
+      ) : null}
+
       {byProject.map(([projectName, items]) => (
-        <section key={projectName} className="surface-card rounded-2xl p-5">
+        <section key={projectName} className="surface-card rounded-2xl p-6">
           <h2 className="text-lg font-semibold">{projectName}</h2>
           <div className="text-xs text-muted mt-1">{items.length} video(s) pending</div>
 
           <div className="mt-3 space-y-2">
             {items.map((item) => (
-              <div key={item.id} className="surface-muted rounded-xl p-4 flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-medium">{item.title}</div>
-                  <div className="text-xs text-muted mt-1">Status: {item.status}</div>
+              <div
+                key={item.id}
+                className="surface-muted rounded-xl p-3 flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{item.title}</div>
                 </div>
-                <Link href={`/dashboard/review-queue/${item.id}`} className="button-primary rounded-lg px-3 py-2 text-xs font-medium whitespace-nowrap">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="rounded-full bg-indigo-100 text-indigo-700 px-2 py-0.5 text-xs font-medium capitalize">
+                    {item.status}
+                  </span>
+                  <Link
+                    href={`/dashboard/review-queue/${item.id}`}
+                    className="button-primary inline-flex rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap"
+                  >
                   Review Video
-                </Link>
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
         </section>
       ))}
+    </div>
+  );
+}
+
+function Metric({ title, value }: { title: string; value: number }) {
+  return (
+    <div className="surface-card rounded-2xl p-6">
+      <div className="text-[15px] text-slate-600">{title}</div>
+      <div className="text-5xl leading-none font-semibold mt-2">{value}</div>
     </div>
   );
 }
