@@ -268,7 +268,7 @@ export default function ProjectFormPage() {
                     onChange={(e) => updateField(index, "label", e.target.value)}
                   />
                   <select
-                    className="input-base focus-ring w-full rounded-xl px-3 py-2"
+                    className="input-base focus-ring w-full rounded-xl px-3 py-2 capitalize"
                     value={field.type}
                     onChange={(e) => updateField(index, "type", e.target.value)}
                     disabled={isMandatoryVideo}
@@ -293,7 +293,7 @@ export default function ProjectFormPage() {
                 {field.type === "attachment" ? (
                   <div className="mt-3">
                     <div className="text-xs text-muted mb-2">Allowed attachment types</div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 capitalize">
                       {ATTACHMENT_TYPES.map((type) => (
                         <label
                           key={type}
@@ -343,7 +343,7 @@ export default function ProjectFormPage() {
                 <div key={`preview-${index}`} className="surface-muted rounded-xl p-3">
                   <div className="text-xs text-slate-500 mb-1">Question {index + 1}</div>
                   <div className="font-semibold">{field.label || "Untitled field"}</div>
-                  <div className="text-xs text-muted mt-1">
+                  <div className="text-xs text-muted mt-1 capitalize">
                     {field.type}
                     {field.required ? " • Required" : ""}
                     {field.type === "attachment" && (field.attachmentTypes || []).length > 0

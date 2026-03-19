@@ -1916,7 +1916,44 @@ export async function handleSaveEvaluatorReview(
 
     const body = await req.json();
     const rubricBreakdown = Array.isArray(body.rubricBreakdown) ? body.rubricBreakdown : [];
-    const rubricBreakdownJson = JSON.stringify(rubricBreakdown);
+
+    const rubricRows = await db
+      .select()
+      .from(schema.projectRubrics)
+      .where(eq(schema.projectRubrics.projectId, ctx.project.id));
+    rubricRows.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    if (rubricRows.length === 0) {
+      return json({ error: "No rubric configured for this project." }, 400, corsHeaders);
+    }
+
+    const incomingByRubricId = new Map<number, any>();
+    for (const item of rubricBreakdown) {
+      const rubricId = Number(item?.rubricId);
+      if (!Number.isFinite(rubricId)) continue;
+      incomingByRubricId.set(rubricId, item);
+    }
+
+    const normalizedRubricBreakdown: any[] = [];
+    for (const rubric of rubricRows) {
+      const item = incomingByRubricId.get(rubric.id);
+      if (!item) {
+        return json({ error: `Missing score for rubric '${rubric.title}'.` }, 400, corsHeaders);
+      }
+
+      const rating = Number(item.rating);
+      if (!Number.isFinite(rating) || rating < 1 || rating > 10) {
+        return json({ error: `Rubric '${rubric.title}' must be scored between 1 and 10.` }, 400, corsHeaders);
+      }
+
+      const note = typeof item.note === "string" ? item.note.trim() : "";
+      normalizedRubricBreakdown.push({
+        rubricId: rubric.id,
+        rating: Math.round(rating),
+        note,
+      });
+    }
+
+    const rubricBreakdownJson = JSON.stringify(normalizedRubricBreakdown);
 
     const existingReview = await db
       .select()

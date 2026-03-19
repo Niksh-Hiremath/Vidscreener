@@ -101,6 +101,8 @@ export default function DashboardShell({
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const isReviewDetailRoute =
+    pathname.startsWith("/dashboard/review-queue/") && pathname !== "/dashboard/review-queue";
 
   const navItems = useMemo(
     () =>
@@ -113,9 +115,8 @@ export default function DashboardShell({
   );
 
   const userTitle = user.name || user.email;
-  const isEvaluator = user.role === "reviewer" || user.role === "evaluator";
-  const accentActive = isEvaluator ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-indigo-50 border border-indigo-200 text-indigo-700";
-  const accentHover = isEvaluator ? "hover:bg-emerald-50 hover:text-emerald-700" : "hover:bg-indigo-50 hover:text-indigo-700";
+  const accentActive = "bg-indigo-50 border border-indigo-200 text-indigo-700";
+  const accentHover = "hover:bg-indigo-50 hover:text-indigo-700";
 
   return (
     <div className="h-[calc(100dvh-67px)] overflow-hidden bg-transparent text-slate-900 flex">
@@ -209,8 +210,12 @@ export default function DashboardShell({
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[#f3f4f8] p-4 md:p-6 lg:p-7 scroll-subtle">
-        <div className="mx-auto w-full max-w-[1320px]">{children}</div>
+      <main
+        className={`flex-1 min-w-0 h-full bg-[#f3f4f8] ${
+          isReviewDetailRoute ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-6 lg:p-7 scroll-subtle"
+        }`}
+      >
+        <div className={`${isReviewDetailRoute ? "h-full w-full" : "mx-auto w-full max-w-[1320px]"}`}>{children}</div>
       </main>
     </div>
   );
