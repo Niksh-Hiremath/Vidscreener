@@ -34,6 +34,12 @@ import {
   handleEvaluatorReviewContext,
   handleSaveEvaluatorReview,
   handleOpenAttachment,
+  handleShareFormWithSubmitters,
+  handleGetFormShares,
+  handleSubmitterApplications,
+  handleSubmitterGetForm,
+  handleSubmitterSubmitForm,
+  handleSubmitterExplore,
 } from "./routes";
 
 export default {
@@ -204,6 +210,36 @@ export default {
     const projectRemoveEvaluatorMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/evaluators\/remove$/);
     if (projectRemoveEvaluatorMatch && req.method === "POST") {
       return handleRemoveProjectEvaluator(req, env, db, Number(projectRemoveEvaluatorMatch[1]));
+    }
+
+    // Submitter: list applications (shared forms)
+    if (url.pathname === "/api/submitter/applications" && req.method === "GET") {
+      return handleSubmitterApplications(req, env, db);
+    }
+
+    // Submitter: explore live programs
+    if (url.pathname === "/api/submitter/explore" && req.method === "GET") {
+      return handleSubmitterExplore(req, env, db);
+    }
+
+    const submitterGetFormMatch = url.pathname.match(/^\/api\/submitter\/projects\/(\d+)\/form$/);
+    if (submitterGetFormMatch && req.method === "GET") {
+      return handleSubmitterGetForm(req, env, db, Number(submitterGetFormMatch[1]));
+    }
+
+    const submitterSubmitMatch = url.pathname.match(/^\/api\/submitter\/projects\/(\d+)\/submit$/);
+    if (submitterSubmitMatch && req.method === "POST") {
+      return handleSubmitterSubmitForm(req, env, db, Number(submitterSubmitMatch[1]));
+    }
+
+    const shareFormMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/share$/);
+    if (shareFormMatch && req.method === "POST") {
+      return handleShareFormWithSubmitters(req, env, db, Number(shareFormMatch[1]));
+    }
+
+    const getFormSharesMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/shares$/);
+    if (getFormSharesMatch && req.method === "GET") {
+      return handleGetFormShares(req, env, db, Number(getFormSharesMatch[1]));
     }
 
     // Default: Not found

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import AdminSnapshot from "./AdminSnapshot";
 import EvaluatorSnapshot from "./EvaluatorSnapshot";
 import { getDashboardContext } from "./data";
@@ -6,6 +7,11 @@ import { getDashboardContext } from "./data";
 export default async function DashboardPage() {
   const { user, organization } = await getDashboardContext();
   if (!user) return null;
+
+  // Submitters have their own dedicated portal
+  if (user.role === "submitter") {
+    redirect("/dashboard/submitter/applications");
+  }
 
   if (user.role === "reviewer" || user.role === "evaluator") {
     return (
