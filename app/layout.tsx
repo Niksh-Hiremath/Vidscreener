@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import SiteNavbar from "./components/SiteNavbar";
-import { getSessionUser } from "./lib/session";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,17 +17,14 @@ export const metadata: Metadata = {
   description: "AI-assisted video evaluation platform for structured, explainable decisions.",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await getSessionUser();
-
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SiteNavbar user={user} />
         {children}
       </body>
     </html>

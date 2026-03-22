@@ -2056,3 +2056,341 @@ export async function handleOpenAttachment(
     return json({ error: message }, 500, corsHeaders);
   }
 }
+
+// ─── Submitter-side API handlers ──────────────────────────────────────────────
+
+export async function handleShareFormWithSubmitters(
+  req: Request,
+  env: Env,
+  db: any,
+  projectId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const body = await req.json();
+    const emails: string[] = Array.isArray(body.emails)
+      ? body.emails.map((e: unknown) => (typeof e === "string" ? e.trim().toLowerCase() : "")).filter(Boolean)
+      : [];
+    const message = typeof body.message === "string" ? body.message.trim() : null;
+
+    if (emails.length === 0) {
+      return json({ error: "At least one email is required." }, 400, corsHeaders);
+    }
+
+    const formRows = await db.select().from(schema.projectForms).where(eq(schema.projectForms.projectId, projectId));
+    if (formRows.length === 0) {
+      return json({ error: "Build a form before sharing." }, 400, corsHeaders);
+    }
+
+    const created: number[] = [];
+    const alreadyShared: string[] = [];
+
+    for (const email of emails) {
+      const existing = await db
+        .select()
+        .from(schema.projectFormShares)
+        .where(and(eq(schema.projectFormShares.projectId, projectId), eq(schema.projectFormShares.submitterEmail, email)));
+      if (existing.length > 0) { alreadyShared.push(email); continue; }
+
+      const matchedUsers = await db.select().from(schema.users).where(eq(schema.users.email, email));
+      const submitterUserId = matchedUsers[0]?.id ?? null;
+
+      const [share] = await db
+        .insert(schema.projectFormShares)
+        .values({ projectId, submitterEmail: email, submitterUserId, sharedByUserId: user.id, message })
+        .returning();
+      created.push(share.id);
+    }
+
+    return json({ success: true, created: created.length, alreadyShared }, 201, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleGetFormShares(req: Request, env: Env, db: any, projectId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const shares = await db.select().from(schema.projectFormShares).where(eq(schema.projectFormShares.projectId, projectId));
+
+    const sharesWithStatus = await Promise.all(
+      shares.map(async (share: any) => {
+        let submissionId: number | null = null;
+        let submittedAt: string | null = null;
+        if (share.submitterUserId) {
+          const subs = await db
+            .select()
+            .from(schema.projectFormSubmissions)
+            .where(and(eq(schema.projectFormSubmissions.projectId, projectId), eq(schema.projectFormSubmissions.submitterUserId, share.submitterUserId)));
+          if (subs.length > 0) { submissionId = subs[0].id; submittedAt = subs[0].submittedAt; }
+        }
+        return { id: share.id, email: share.submitterEmail, sharedAt: share.sharedAt, message: share.message, submitted: !!submissionId, submissionId, submittedAt };
+      })
+    );
+
+    return json({ shares: sharesWithStatus }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleSubmitterApplications(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user) return json({ error: "Unauthorized" }, 403, corsHeaders);
+
+    const sharesByEmail = await db.select().from(schema.projectFormShares).where(eq(schema.projectFormShares.submitterEmail, user.email));
+    const sharesByUserId = user.id
+      ? await db.select().from(schema.projectFormShares).where(eq(schema.projectFormShares.submitterUserId, user.id))
+      : [];
+
+    const seenProjectIds = new Set<number>();
+    const uniqueShares = [...sharesByEmail, ...sharesByUserId].filter((share: any) => {
+      if (seenProjectIds.has(share.projectId)) return false;
+      seenProjectIds.add(share.projectId);
+      return true;
+    });
+
+    if (uniqueShares.length === 0) return json({ applications: [] }, 200, corsHeaders);
+
+    const projectIds = uniqueShares.map((s: any) => s.projectId);
+    const projects = await db.select().from(schema.projects).where(inArray(schema.projects.id, projectIds));
+    const orgIds = [...new Set(projects.map((p: any) => p.organizationId).filter(Boolean))] as number[];
+    const orgs = orgIds.length ? await db.select().from(schema.organizations).where(inArray(schema.organizations.id, orgIds)) : [];
+    const orgById = new Map(orgs.map((o: any) => [o.id, o]));
+
+    const submissions = await db
+      .select()
+      .from(schema.projectFormSubmissions)
+      .where(and(inArray(schema.projectFormSubmissions.projectId, projectIds), eq(schema.projectFormSubmissions.submitterUserId, user.id)));
+    const submissionByProjectId = new Map(submissions.map((s: any) => [s.projectId, s]));
+
+    const applications = await Promise.all(
+      uniqueShares.map(async (share: any) => {
+        const project = projects.find((p: any) => p.id === share.projectId);
+        if (!project) return null;
+        const submission = submissionByProjectId.get(project.id) || null;
+
+        let reviewProgress: { total: number; reviewed: number } | null = null;
+        if (submission) {
+          const attachments = await db
+            .select()
+            .from(schema.projectFormSubmissionAttachments)
+            .where(and(eq(schema.projectFormSubmissionAttachments.submissionId, submission.id), eq(schema.projectFormSubmissionAttachments.attachmentType, "video")));
+          const total = attachments.length;
+          const reviewed = attachments.filter((a: any) => a.reviewStatus === "reviewed").length;
+          reviewProgress = { total, reviewed };
+        }
+
+        const org = orgById.get(project.organizationId) || null;
+        return {
+          shareId: share.id,
+          sharedAt: share.sharedAt,
+          message: share.message,
+          project: { id: project.id, name: project.name, description: project.description, status: project.status },
+          organization: org ? { id: org.id, name: org.name } : null,
+          submission: submission ? { id: submission.id, submittedAt: submission.submittedAt, reviewProgress } : null,
+        };
+      })
+    );
+
+    return json({ applications: applications.filter(Boolean) }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleSubmitterGetForm(req: Request, env: Env, db: any, projectId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user) return json({ error: "Unauthorized" }, 403, corsHeaders);
+
+    const shares = await db.select().from(schema.projectFormShares).where(and(eq(schema.projectFormShares.projectId, projectId), eq(schema.projectFormShares.submitterEmail, user.email)));
+    const sharesByUserId = user.id
+      ? await db.select().from(schema.projectFormShares).where(and(eq(schema.projectFormShares.projectId, projectId), eq(schema.projectFormShares.submitterUserId, user.id)))
+      : [];
+
+    if (shares.length === 0 && sharesByUserId.length === 0) {
+      const projectRows = await db.select().from(schema.projects).where(and(eq(schema.projects.id, projectId), eq(schema.projects.status, "active")));
+      if (projectRows.length === 0) return json({ error: "Not invited to this project" }, 403, corsHeaders);
+    }
+
+    const projectRows = await db.select().from(schema.projects).where(eq(schema.projects.id, projectId));
+    const project = projectRows[0];
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const formRows = await db.select().from(schema.projectForms).where(eq(schema.projectForms.projectId, projectId));
+    const form = formRows[0];
+    if (!form) return json({ error: "No form configured for this project" }, 404, corsHeaders);
+
+    let fields: any[] = [];
+    try { fields = normalizeProjectFormFields(JSON.parse(form.fieldsJson)); } catch { fields = []; }
+
+    const existingSubmissions = await db.select().from(schema.projectFormSubmissions).where(and(eq(schema.projectFormSubmissions.projectId, projectId), eq(schema.projectFormSubmissions.submitterUserId, user.id)));
+    const existingSubmission = existingSubmissions[0] || null;
+
+    const orgRows = await db.select().from(schema.organizations).where(eq(schema.organizations.id, project.organizationId));
+    const org = orgRows[0] || null;
+
+    return json({
+      project: { id: project.id, name: project.name, description: project.description, status: project.status },
+      organization: org ? { id: org.id, name: org.name } : null,
+      fields,
+      existingSubmission: existingSubmission ? { id: existingSubmission.id, submittedAt: existingSubmission.submittedAt } : null,
+    }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleSubmitterSubmitForm(req: Request, env: Env, db: any, projectId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user) return json({ error: "Unauthorized" }, 403, corsHeaders);
+
+    const shares = await db.select().from(schema.projectFormShares).where(and(eq(schema.projectFormShares.projectId, projectId), eq(schema.projectFormShares.submitterEmail, user.email)));
+    const sharesByUserId = user.id ? await db.select().from(schema.projectFormShares).where(and(eq(schema.projectFormShares.projectId, projectId), eq(schema.projectFormShares.submitterUserId, user.id))) : [];
+    const hasShare = shares.length > 0 || sharesByUserId.length > 0;
+    if (!hasShare) {
+      const projectRows = await db.select().from(schema.projects).where(and(eq(schema.projects.id, projectId), eq(schema.projects.status, "active")));
+      if (projectRows.length === 0) return json({ error: "Not authorized to submit" }, 403, corsHeaders);
+    }
+
+    const existing = await db.select().from(schema.projectFormSubmissions).where(and(eq(schema.projectFormSubmissions.projectId, projectId), eq(schema.projectFormSubmissions.submitterUserId, user.id)));
+    if (existing.length > 0) return json({ error: "You have already submitted for this project." }, 409, corsHeaders);
+
+    const formRows = await db.select().from(schema.projectForms).where(eq(schema.projectForms.projectId, projectId));
+    const formConfig = formRows[0];
+    const formFields = formConfig?.fieldsJson ? normalizeProjectFormFields(JSON.parse(formConfig.fieldsJson)) : [];
+    if (!formFields.some((field: any) => isMandatoryVideoField(field))) {
+      return json({ error: "Project form is not configured correctly." }, 400, corsHeaders);
+    }
+
+    const formData = await req.formData();
+    const fieldsPayloadRaw = formData.get("fields");
+    let fieldsPayload: Record<string, unknown> = {};
+    if (typeof fieldsPayloadRaw === "string" && fieldsPayloadRaw.trim()) {
+      try { fieldsPayload = JSON.parse(fieldsPayloadRaw); } catch { fieldsPayload = {}; }
+    }
+
+    const attachmentFields = formFields.map((field: any, index: number) => ({ ...field, index })).filter((field: any) => field.type === "attachment");
+    const mandatoryVideoFieldIndexes = new Set(attachmentFields.filter((field: any) => isMandatoryVideoField(field)).map((field: any) => field.index));
+    const attachmentUploadPlan: Array<{ formFieldKey: string; file: File; detectedType: AttachmentType }> = [];
+
+    for (const field of attachmentFields) {
+      const formFieldKey = `attachment_${field.index}`;
+      const files = formData.getAll(formFieldKey).filter((entry) => entry instanceof File) as File[];
+      if (field.required && files.length === 0) return json({ error: `Attachment required for '${field.label}'.` }, 400, corsHeaders);
+      let hasVideoInField = false;
+      for (const file of files) {
+        if (!file.name || file.size === 0) continue;
+        const detectedType = fileToAttachmentType(file);
+        if (!detectedType) return json({ error: `Unsupported file type for ${file.name}` }, 400, corsHeaders);
+        const allowedTypes = parseAttachmentTypes(field.attachmentTypes);
+        if (allowedTypes.length > 0 && !allowedTypes.includes(detectedType)) return json({ error: `File type not allowed for '${field.label}'.` }, 400, corsHeaders);
+        if (detectedType === "video") hasVideoInField = true;
+        attachmentUploadPlan.push({ formFieldKey, file, detectedType });
+      }
+      if (mandatoryVideoFieldIndexes.has(field.index) && !hasVideoInField) return json({ error: `'${field.label}' requires a video file.` }, 400, corsHeaders);
+    }
+
+    const [submission] = await db.insert(schema.projectFormSubmissions).values({ projectId, submitterUserId: user.id, fieldsJson: JSON.stringify(fieldsPayload) }).returning();
+
+    let attachmentCount = 0;
+    for (const item of attachmentUploadPlan) {
+      const key = `project-form-submissions/${projectId}/${submission.id}/${crypto.randomUUID()}-${item.file.name}`;
+      const buffer = await item.file.arrayBuffer();
+      await env.BUCKET.put(key, buffer, { httpMetadata: { contentType: item.file.type || undefined } });
+      await db.insert(schema.projectFormSubmissionAttachments).values({
+        submissionId: submission.id, formFieldKey: item.formFieldKey, r2Key: key,
+        fileName: item.file.name, fileSize: item.file.size, mimeType: item.file.type || "application/octet-stream",
+        attachmentType: item.detectedType, assignedEvaluatorId: null, reviewStatus: "unassigned",
+      });
+      attachmentCount++;
+    }
+
+    await db.update(schema.projectFormShares).set({ submitterUserId: user.id }).where(and(eq(schema.projectFormShares.projectId, projectId), eq(schema.projectFormShares.submitterEmail, user.email)));
+
+    return json({ success: true, submissionId: submission.id, attachmentsStored: attachmentCount }, 201, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleSubmitterExplore(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user) return json({ error: "Unauthorized" }, 403, corsHeaders);
+
+    const activeProjects = await db.select().from(schema.projects).where(eq(schema.projects.status, "active"));
+    const projectIds = activeProjects.map((p: any) => p.id);
+    if (projectIds.length === 0) return json({ programs: [] }, 200, corsHeaders);
+
+    const forms = await db.select().from(schema.projectForms).where(inArray(schema.projectForms.projectId, projectIds));
+    const formByProjectId = new Map(forms.map((f: any) => [f.projectId, f]));
+
+    const orgIds = [...new Set(activeProjects.map((p: any) => p.organizationId).filter(Boolean))] as number[];
+    const orgs = orgIds.length ? await db.select().from(schema.organizations).where(inArray(schema.organizations.id, orgIds)) : [];
+    const orgById = new Map(orgs.map((o: any) => [o.id, o]));
+
+    const submissions = await db.select().from(schema.projectFormSubmissions).where(and(inArray(schema.projectFormSubmissions.projectId, projectIds), eq(schema.projectFormSubmissions.submitterUserId, user.id)));
+    const submittedProjectIds = new Set(submissions.map((s: any) => s.projectId));
+
+    const shares = await db.select().from(schema.projectFormShares).where(eq(schema.projectFormShares.submitterEmail, user.email));
+    const invitedProjectIds = new Set(shares.map((s: any) => s.projectId));
+
+    const programs = activeProjects
+      .filter((project: any) => {
+        const form = formByProjectId.get(project.id);
+        if (!form) return false;
+        try {
+          const fields = normalizeProjectFormFields(JSON.parse(form.fieldsJson));
+          return fields.some((f: any) => isMandatoryVideoField(f));
+        } catch { return false; }
+      })
+      .map((project: any) => {
+        const org = orgById.get(project.organizationId) || null;
+        return {
+          id: project.id, name: project.name, description: project.description, createdAt: project.createdAt,
+          organization: org ? { id: org.id, name: org.name } : null,
+          isInvited: invitedProjectIds.has(project.id),
+          hasSubmitted: submittedProjectIds.has(project.id),
+        };
+      });
+
+    return json({ programs }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+

@@ -25,6 +25,10 @@ const EVALUATOR_NAV_ITEMS: NavItem[] = [
   { label: "Projects", href: "/dashboard/projects" },
   { label: "Review Queue", href: "/dashboard/review-queue" },
 ];
+const SUBMITTER_NAV_ITEMS: NavItem[] = [
+  { label: "My Applications", href: "/dashboard/submitter/applications" },
+  { label: "Explore Programs", href: "/dashboard/submitter/explore" },
+];
 
 const NAV_ICONS: Record<string, React.ReactNode> = {
   Dashboard: (
@@ -77,6 +81,21 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
       <path d="M13 18h8" />
     </svg>
   ),
+  "My Applications": (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M16 13H8" />
+      <path d="M16 17H8" />
+      <path d="M10 9H8" />
+    </svg>
+  ),
+  "Explore Programs": (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.35-4.35" />
+    </svg>
+  ),
   Profile: (
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M20 21a8 8 0 0 0-16 0" />
@@ -110,7 +129,9 @@ export default function DashboardShell({
         ? ADMIN_NAV_ITEMS
         : user.role === "reviewer" || user.role === "evaluator"
           ? EVALUATOR_NAV_ITEMS
-          : DEFAULT_NAV_ITEMS,
+          : user.role === "submitter"
+            ? SUBMITTER_NAV_ITEMS
+            : DEFAULT_NAV_ITEMS,
     [user.role]
   );
 

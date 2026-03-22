@@ -111,6 +111,16 @@ export const projectFormSubmissionAttachments = sqliteTable("project_form_submis
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const projectFormShares = sqliteTable("project_form_shares", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  submitterEmail: text("submitter_email").notNull(),
+  submitterUserId: integer("submitter_user_id").references(() => users.id),
+  sharedByUserId: integer("shared_by_user_id").notNull().references(() => users.id),
+  message: text("message"),
+  sharedAt: text("shared_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const projectVideoReviews = sqliteTable("project_video_reviews", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   videoAttachmentId: integer("video_attachment_id").notNull().references(() => projectFormSubmissionAttachments.id).unique(),
