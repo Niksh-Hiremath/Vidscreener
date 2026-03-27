@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 
 const WORKER_API_BASE_URL =
-  process.env.WORKER_API_BASE_URL || "http://localhost:8787";
+  process.env.WORKER_API_BASE_URL || "http://127.0.0.1:8787";
 
 export type DashboardUser = {
   id: number;
