@@ -54,7 +54,7 @@ export default function VideosPage() {
       </section>
 
       {loading ? <div className="surface-card rounded-2xl p-6">Loading...</div> : null}
-      {error ? <div className="surface-card rounded-2xl p-6 text-rose-600">{error}</div> : null}
+      {error ? <div className="surface-card rounded-2xl p-6 text-[var(--color-primary)]">{error}</div> : null}
 
       {!loading && !error && groups.length === 0 ? (
         <div className="surface-card rounded-2xl p-6 text-muted">No projects found.</div>
@@ -69,7 +69,7 @@ export default function VideosPage() {
             </div>
             <Link
               href={`/dashboard/projects/${group.project.id}`}
-              className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2 text-sm font-medium text-indigo-700 transition hover:from-indigo-100"
+              className="rounded-xl border border-[var(--color-primary)]/40 bg-[var(--glow-primary-subtle)] px-3 py-2 text-sm font-medium text-[var(--color-primary)] transition hover:bg-[var(--glow-primary)]"
             >
               Open Project
             </Link>

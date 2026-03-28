@@ -24,7 +24,7 @@ export function getCorsHeaders(req: Request, env?: Env) {
   return {
     ...(isAllowedOrigin ? { "Access-Control-Allow-Origin": origin } : {}),
     Vary: "Origin",
-    "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers":
       req.headers.get("Access-Control-Request-Headers") ||
       "Content-Type, Authorization",

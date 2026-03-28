@@ -23,7 +23,7 @@ function formatDate(iso: string) {
 function StatusBadge({ submission }: { submission: Submission | null }) {
   if (!submission) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-amber-900/30 text-amber-400 border border-amber-800">
         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
         Pending
       </span>
@@ -32,7 +32,7 @@ function StatusBadge({ submission }: { submission: Submission | null }) {
   const { total, reviewed } = submission.reviewProgress ?? { total: 0, reviewed: 0 };
   if (total > 0 && reviewed === total) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-emerald-900/30 text-emerald-400 border border-emerald-800">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
         Review Complete
       </span>
@@ -40,15 +40,15 @@ function StatusBadge({ submission }: { submission: Submission | null }) {
   }
   if (total > 0 && reviewed > 0) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-blue-900/30 text-blue-400 border border-blue-800">
         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
         Under Review
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-      <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-[var(--surface-2)] text-[var(--color-text-muted)] border border-[var(--border-strong)]">
+      <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-text-muted)] inline-block" />
       Submitted
     </span>
   );
@@ -59,13 +59,13 @@ function ProgressBar({ reviewed, total }: { reviewed: number; total: number }) {
   const pct = Math.round((reviewed / total) * 100);
   return (
     <div className="mt-3">
-      <div className="flex justify-between text-[11px] text-slate-500 mb-1.5">
+      <div className="flex justify-between text-[11px] text-[var(--color-text-muted)] mb-1.5">
         <span>Review progress</span>
         <span>{reviewed}/{total} videos reviewed</span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[var(--surface-2)] overflow-hidden">
         <div
-          className="h-full rounded-full bg-indigo-500 transition-all duration-700"
+          className="h-full rounded-full bg-[var(--color-primary)] transition-all duration-700"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -96,8 +96,8 @@ export default function SubmitterApplicationsPage() {
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="surface-card rounded-2xl p-6 animate-pulse">
-              <div className="h-4 bg-slate-100 rounded w-1/3 mb-3" />
-              <div className="h-3 bg-slate-100 rounded w-2/3" />
+              <div className="h-4 bg-[var(--surface-2)] rounded w-1/3 mb-3" />
+              <div className="h-3 bg-[var(--surface-2)] rounded w-2/3" />
             </div>
           ))}
         </div>
@@ -110,7 +110,7 @@ export default function SubmitterApplicationsPage() {
       <div className="space-y-6">
         <Header />
         <div className="surface-card rounded-2xl p-8 text-center">
-          <p className="text-sm text-rose-600">{error}</p>
+          <p className="text-sm text-[var(--color-primary)]">{error}</p>
         </div>
       </div>
     );
@@ -136,14 +136,14 @@ export default function SubmitterApplicationsPage() {
 function Header({ count }: { count?: number }) {
   return (
     <section className="rounded-2xl p-6 md:p-7">
-      <p className="text-xs uppercase tracking-wide text-indigo-600 font-semibold">Submitter Portal</p>
+      <p className="text-xs uppercase tracking-wide text-[var(--color-primary)] font-semibold">Submitter Portal</p>
       <h1 className="text-2xl md:text-3xl font-semibold mt-2">My Applications</h1>
       <p className="text-sm text-muted mt-2 max-w-2xl">
         Track all the programs you've been invited to submit for. Fill out shared forms and monitor your submission status in real time.
       </p>
       {count !== undefined && count > 0 && (
-        <div className="mt-4 inline-flex items-center gap-2 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5">
-          <span className="font-semibold text-slate-800">{count}</span> program{count !== 1 ? "s" : ""} shared with you
+        <div className="mt-4 inline-flex items-center gap-2 text-xs text-[var(--color-text-muted)] bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-full px-3 py-1.5">
+          <span className="font-semibold text-[var(--color-text)]">{count}</span> program{count !== 1 ? "s" : ""} shared with you
         </div>
       )}
     </section>
@@ -153,21 +153,21 @@ function Header({ count }: { count?: number }) {
 function EmptyState() {
   return (
     <div className="surface-card rounded-2xl p-12 text-center">
-      <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
-        <svg className="h-6 w-6 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-[var(--surface-2)] flex items-center justify-center">
+        <svg className="h-6 w-6 text-[var(--color-text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <path d="M14 2v6h6" />
           <path d="M16 13H8" />
           <path d="M16 17H8" />
         </svg>
       </div>
-      <h3 className="text-base font-semibold text-slate-800 mb-1">No applications yet</h3>
+      <h3 className="text-base font-semibold text-[var(--color-text)] mb-1">No applications yet</h3>
       <p className="text-sm text-muted max-w-sm mx-auto">
         You haven't been invited to submit for any programs yet. Browse live programs below or wait for an admin to share a form with you.
       </p>
       <Link
         href="/dashboard/submitter/explore"
-        className="inline-flex items-center gap-2 mt-5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+        className="inline-flex items-center gap-2 mt-5 text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 transition-colors"
       >
         Explore Programs
         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -189,15 +189,15 @@ function ApplicationCard({ app }: { app: Application }) {
           <div className="min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap mb-1">
               {organization && (
-                <span className="text-[11px] uppercase tracking-wide font-semibold text-slate-500">
+                <span className="text-[11px] uppercase tracking-wide font-semibold text-[var(--color-text-muted)]">
                   {organization.name}
                 </span>
               )}
               <StatusBadge submission={submission} />
             </div>
-            <h2 className="text-lg font-semibold text-slate-900 leading-tight">{project.name}</h2>
+            <h2 className="text-lg font-semibold text-[var(--color-text)] leading-tight">{project.name}</h2>
             {project.description && (
-              <p className="text-sm text-slate-500 mt-1 line-clamp-2">{project.description}</p>
+              <p className="text-sm text-[var(--color-text-muted)] mt-1 line-clamp-2">{project.description}</p>
             )}
           </div>
 
@@ -227,14 +227,14 @@ function ApplicationCard({ app }: { app: Application }) {
           <ProgressBar reviewed={rp.reviewed} total={rp.total} />
         )}
 
-        <div className="mt-4 pt-4 border-t border-[var(--border-soft)] flex items-center gap-4 flex-wrap text-[12px] text-slate-500">
+        <div className="mt-4 pt-4 border-t border-[var(--border-soft)] flex items-center gap-4 flex-wrap text-[12px] text-[var(--color-text-muted)]">
           <span>Shared {formatDate(sharedAt)}</span>
           {submission && <span>Submitted {formatDate(submission.submittedAt)}</span>}
         </div>
 
         {message && (
-          <div className="mt-3 p-3 rounded-xl bg-indigo-50 border border-indigo-100">
-            <p className="text-xs text-indigo-700 leading-relaxed">
+          <div className="mt-3 p-3 rounded-xl bg-[var(--glow-primary-subtle)] border border-[var(--color-primary)]/30">
+            <p className="text-xs text-[var(--color-primary)] leading-relaxed">
               <span className="font-semibold">Note from organizer: </span>{message}
             </p>
           </div>

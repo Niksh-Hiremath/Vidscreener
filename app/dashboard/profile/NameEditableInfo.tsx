@@ -48,7 +48,7 @@ export default function NameEditableInfo({ initialName }: { initialName: string 
         <div className="text-xs text-muted">Name</div>
         <button
           type="button"
-          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-text-muted)] transition hover:bg-[var(--glow-primary)] hover:text-[var(--color-primary)]"
           onClick={saveName}
           aria-label={editing ? "Save name" : "Edit name"}
           title={editing ? "Save" : "Edit"}
@@ -80,7 +80,7 @@ export default function NameEditableInfo({ initialName }: { initialName: string 
         <div className="mt-1 font-medium">{name || "-"}</div>
       )}
 
-      {error ? <div className="mt-1 text-xs text-rose-600">{error}</div> : null}
+      {error ? <div className="mt-1 text-xs text-[var(--color-primary)]">{error}</div> : null}
     </div>
   );
 }

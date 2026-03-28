@@ -114,7 +114,7 @@ export default function ProjectRubricsPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Manage Rubrics</h1>
         <Link
           href={`/dashboard/projects/${projectId}`}
-          className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2 text-sm font-medium text-indigo-700 transition hover:from-indigo-100"
+          className="rounded-xl border border-[var(--color-primary)]/40 bg-[var(--glow-primary-subtle)] px-3 py-2 text-sm font-medium text-[var(--color-primary)] transition hover:bg-[var(--glow-primary)]"
         >
           Back to Project
         </Link>
@@ -122,22 +122,22 @@ export default function ProjectRubricsPage() {
 
       <section className="surface-card rounded-2xl p-6">
         {loading ? <div className="text-sm text-muted">Loading...</div> : null}
-        {error ? <div className="text-sm text-rose-600 mb-3">{error}</div> : null}
-        {success ? <div className="text-sm text-emerald-600 mb-3">{success}</div> : null}
+        {error ? <div className="text-sm text-[var(--color-primary)] mb-3">{error}</div> : null}
+        {success ? <div className="text-sm text-emerald-400 mb-3">{success}</div> : null}
 
         <div className="surface-muted rounded-xl p-4 mb-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-medium text-slate-800">Weight Distribution</div>
+              <div className="text-sm font-medium text-[var(--color-text)]">Weight Distribution</div>
               <div className="text-xs text-muted mt-1">All rubric weights must add up to 100%.</div>
             </div>
-            <div className={`text-sm font-semibold ${totalWeight === 100 ? "text-emerald-600" : "text-amber-600"}`}>
+            <div className={`text-sm font-semibold ${totalWeight === 100 ? "text-emerald-400" : "text-amber-400"}`}>
               Total: {totalWeight}%
             </div>
           </div>
-          <div className="mt-3 h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+          <div className="mt-3 h-2 w-full rounded-full bg-[var(--surface-2)] overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-300 ${totalWeight === 100 ? "bg-emerald-500" : "bg-amber-500"}`}
+              className={`h-full rounded-full transition-all duration-300 ${totalWeight === 100 ? "bg-emerald-400" : "bg-amber-400"}`}
               style={{ width: `${Math.min(100, Math.max(0, totalWeight))}%` }}
             />
           </div>
@@ -147,9 +147,9 @@ export default function ProjectRubricsPage() {
           {rubrics.map((rubric, index) => (
             <div key={`rubric-${index}`} className="surface-muted rounded-xl p-3.5">
               <div className="flex items-center justify-between gap-3 mb-2.5">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Criterion {index + 1}</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Criterion {index + 1}</div>
                 <button
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-rose-500 transition hover:bg-rose-50 hover:text-rose-600"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-[var(--color-primary)] transition hover:bg-[var(--glow-primary)] hover:text-[var(--color-primary)]"
                   onClick={() => removeRubric(index)}
                   aria-label="Remove rubric"
                   title="Remove rubric"
@@ -211,7 +211,7 @@ export default function ProjectRubricsPage() {
             {saving ? "Saving..." : "Save Rubrics"}
           </button>
           {rubrics.length > 0 && totalWeight !== 100 ? (
-            <div className="text-xs text-amber-600 self-center">Adjust weights to make total exactly 100%.</div>
+            <div className="text-xs text-amber-400 self-center">Adjust weights to make total exactly 100%.</div>
           ) : null}
         </div>
       </section>

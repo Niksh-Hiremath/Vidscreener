@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Footer from "../components/Footer";
 import { WORKER_API_BASE_URL } from "../lib/api";
+import RoleSelect from "../components/RoleSelect";
 
 const ROLES = ["Admin", "Reviewer", "Submitter"];
 
@@ -118,17 +119,10 @@ export default function RegisterPage() {
                 className="input-base focus-ring w-full rounded-xl pl-10 pr-3 py-2.5 text-sm"
               />
             </div>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="input-base focus-ring w-full rounded-xl px-3 py-2.5 text-sm"
-            >
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
+            <RoleSelect
+              value={role.toLowerCase()}
+              onChange={(v) => setRole(v.charAt(0).toUpperCase() + v.slice(1))}
+            />
 
             {error ? <div className="text-sm text-[var(--color-primary)]">{error}</div> : null}
             {success ? <div className="text-sm text-emerald-500">Registration successful. Redirecting...</div> : null}

@@ -48,8 +48,8 @@ export default function CreateOrganizationForm() {
       <button type="submit" className="button-primary rounded-xl px-4 py-2 text-sm font-medium" disabled={loading}>
         {loading ? "Creating..." : "Create Organization"}
       </button>
-      {error ? <div className="text-sm text-rose-600">{error}</div> : null}
-      {success ? <div className="text-sm text-emerald-600">{success}</div> : null}
+      {error ? <div className="text-sm text-[var(--color-primary)]">{error}</div> : null}
+      {success ? <div className="text-sm text-emerald-400">{success}</div> : null}
     </form>
   );
 }
