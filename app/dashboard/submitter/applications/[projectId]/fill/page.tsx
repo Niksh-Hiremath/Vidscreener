@@ -103,13 +103,13 @@ export default function FillApplicationPage() {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="surface-card rounded-2xl p-12 text-center">
-          <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-emerald-50 flex items-center justify-center">
-            <svg className="h-7 w-7 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-emerald-900/30 flex items-center justify-center">
+            <svg className="h-7 w-7 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">Application Submitted!</h2>
-          <p className="text-sm text-muted">Your application for <span className="font-medium text-slate-700">{project.name}</span> has been received. Redirecting you to My Applications…</p>
+          <h2 className="text-xl font-semibold text-[var(--color-text)] mb-2">Application Submitted!</h2>
+          <p className="text-sm text-muted">Your application for <span className="font-medium text-[var(--color-text)]">{project.name}</span> has been received. Redirecting you to My Applications…</p>
         </div>
       </div>
     );
@@ -120,7 +120,7 @@ export default function FillApplicationPage() {
       {/* Header */}
       <section className="rounded-2xl p-6 md:p-7">
         <div className="flex items-center gap-2 text-xs text-muted mb-3">
-          <button onClick={() => router.back()} className="hover:text-slate-800 transition-colors">← Back</button>
+          <button onClick={() => router.back()} className="hover:text-[var(--color-text)] transition-colors">← Back</button>
           {organization && (
             <>
               <span>/</span>
@@ -128,8 +128,8 @@ export default function FillApplicationPage() {
             </>
           )}
         </div>
-        <p className="text-xs uppercase tracking-wide text-indigo-600 font-semibold mb-2">Application Form</p>
-        <h1 className="text-2xl font-semibold text-slate-900">{project.name}</h1>
+        <p className="text-xs uppercase tracking-wide text-[var(--color-primary)] font-semibold mb-2">Application Form</p>
+        <h1 className="text-2xl font-semibold text-[var(--color-text)]">{project.name}</h1>
         {project.description && (
           <p className="text-sm text-muted mt-2">{project.description}</p>
         )}
@@ -139,13 +139,13 @@ export default function FillApplicationPage() {
       {existingSubmission && (
         <div className="surface-card rounded-2xl p-6">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
-              <svg className="h-4 w-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-900/30 flex items-center justify-center shrink-0 mt-0.5">
+              <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" />
               </svg>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-800">Application already submitted</h3>
+              <h3 className="text-sm font-semibold text-[var(--color-text)]">Application already submitted</h3>
               <p className="text-sm text-muted mt-0.5">
                 You submitted this application on {formatDate(existingSubmission.submittedAt)}. Your submission is being processed.
               </p>
@@ -159,9 +159,9 @@ export default function FillApplicationPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {fields.map((field, idx) => (
             <div key={idx} className="surface-card rounded-2xl p-6">
-              <label className="block text-sm font-semibold text-slate-800 mb-1">
+              <label className="block text-sm font-semibold text-[var(--color-text)] mb-1">
                 {field.label}
-                {field.required && <span className="text-rose-500 ml-1">*</span>}
+                {field.required && <span className="text-[var(--color-primary)] ml-1">*</span>}
               </label>
 
               {field.type === "text" && (
@@ -191,19 +191,19 @@ export default function FillApplicationPage() {
                   <div className="text-[11px] text-muted mb-2 flex flex-wrap gap-1">
                     Accepted:
                     {(field.attachmentTypes || []).map((t) => (
-                      <span key={t} className="px-1.5 py-0.5 rounded-md bg-slate-100 font-medium capitalize">{t}</span>
+                      <span key={t} className="px-1.5 py-0.5 rounded-md bg-[var(--surface-2)] font-medium capitalize">{t}</span>
                     ))}
                   </div>
 
                   <label
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[var(--border-strong)] rounded-xl cursor-pointer hover:border-[var(--color-primary)]/50 hover:bg-[var(--glow-primary-subtle)] transition-colors group"
                     htmlFor={`file-${idx}`}
                   >
-                    <svg className="h-6 w-6 text-slate-400 group-hover:text-indigo-500 transition-colors mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <svg className="h-6 w-6 text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)] transition-colors mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
-                    <span className="text-sm text-slate-500 group-hover:text-indigo-600 transition-colors">Click to upload files</span>
-                    <span className="text-[11px] text-slate-400 mt-0.5">or drag and drop here</span>
+                    <span className="text-sm text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)] transition-colors">Click to upload files</span>
+                    <span className="text-[11px] text-[var(--color-text-muted)] mt-0.5">or drag and drop here</span>
                     <input
                       id={`file-${idx}`}
                       type="file"
@@ -222,12 +222,12 @@ export default function FillApplicationPage() {
                   {(fileValues[`attachment_${idx}`] || []).length > 0 && (
                     <ul className="mt-2 space-y-1">
                       {(fileValues[`attachment_${idx}`] || []).map((file, fi) => (
-                        <li key={fi} className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
-                          <svg className="h-3.5 w-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <li key={fi} className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] bg-[var(--surface-2)] rounded-lg px-3 py-2">
+                          <svg className="h-3.5 w-3.5 text-[var(--color-text-muted)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" />
                           </svg>
                           <span className="truncate">{file.name}</span>
-                          <span className="text-slate-400 shrink-0">({(file.size / 1024 / 1024).toFixed(1)} MB)</span>
+                          <span className="text-[var(--color-text-muted)] shrink-0">({(file.size / 1024 / 1024).toFixed(1)} MB)</span>
                         </li>
                       ))}
                     </ul>
@@ -238,7 +238,7 @@ export default function FillApplicationPage() {
           ))}
 
           {submitError && (
-            <div className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">
+            <div className="rounded-xl bg-rose-900/30 border border-rose-800 px-4 py-3 text-sm text-rose-400">
               {submitError}
             </div>
           )}
@@ -277,14 +277,14 @@ function LoadingSkeleton() {
   return (
     <div className="max-w-2xl mx-auto space-y-5 animate-pulse">
       <div className="rounded-2xl p-7">
-        <div className="h-3 bg-slate-100 rounded w-24 mb-3" />
-        <div className="h-7 bg-slate-100 rounded w-2/3 mb-2" />
-        <div className="h-3 bg-slate-100 rounded w-full" />
+        <div className="h-3 bg-[var(--surface-2)] rounded w-24 mb-3" />
+        <div className="h-7 bg-[var(--surface-2)] rounded w-2/3 mb-2" />
+        <div className="h-3 bg-[var(--surface-2)] rounded w-full" />
       </div>
       {[1, 2, 3].map((i) => (
         <div key={i} className="surface-card rounded-2xl p-6">
-          <div className="h-4 bg-slate-100 rounded w-1/4 mb-3" />
-          <div className="h-10 bg-slate-100 rounded w-full" />
+          <div className="h-4 bg-[var(--surface-2)] rounded w-1/4 mb-3" />
+          <div className="h-10 bg-[var(--surface-2)] rounded w-full" />
         </div>
       ))}
     </div>
@@ -295,7 +295,7 @@ function ErrorState({ message }: { message: string }) {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="surface-card rounded-2xl p-10 text-center">
-        <p className="text-sm text-rose-600">{message}</p>
+        <p className="text-sm text-[var(--color-primary)]">{message}</p>
       </div>
     </div>
   );

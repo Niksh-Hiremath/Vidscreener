@@ -49,7 +49,7 @@ export default function ProjectVideosPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Project Videos</h1>
         <Link
           href={`/dashboard/projects/${projectId}`}
-          className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2 text-sm font-medium text-indigo-700 transition hover:from-indigo-100"
+          className="rounded-xl border border-[var(--color-primary)]/40 bg-[var(--glow-primary-subtle)] px-3 py-2 text-sm font-medium text-[var(--color-primary)] transition hover:bg-[var(--glow-primary)]"
         >
           Back to Project
         </Link>
@@ -57,7 +57,7 @@ export default function ProjectVideosPage() {
 
       <section className="surface-card rounded-2xl p-6">
         {loading ? <div className="text-sm text-muted">Loading videos...</div> : null}
-        {error ? <div className="text-sm text-rose-600">{error}</div> : null}
+        {error ? <div className="text-sm text-[var(--color-primary)]">{error}</div> : null}
         {!loading && !error && videos.length === 0 ? <div className="text-sm text-muted">No videos yet.</div> : null}
 
         {videos.length > 0 ? (

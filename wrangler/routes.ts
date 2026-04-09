@@ -1,6 +1,6 @@
 import { getCorsHeaders } from "./utils/cors";
 import * as schema from "../db/schema";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { SignJWT } from "jose";
 import { getUserWithRole } from "./utils/user";
@@ -145,6 +145,113 @@ export async function handleLogin(req: Request, env: Env, db: any) {
   }
 }
 
+export async function handleForgotPassword(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const { email } = await req.json();
+    if (!email || typeof email !== "string") {
+      return json({ error: "Email is required" }, 400, corsHeaders);
+    }
+
+    const userArr = await db.select().from(schema.users).where(eq(schema.users.email, email.toLowerCase().trim()));
+    if (userArr.length === 0) {
+      // Deliberately return success to avoid email enumeration
+      return json({ success: true, message: "If an account with that email exists, a reset link has been sent." }, 200, corsHeaders);
+    }
+
+    // Invalidate any existing tokens for this user
+    await db
+      .update(schema.passwordResetTokens)
+      .set({ usedAt: new Date().toISOString() })
+      .where(eq(schema.passwordResetTokens.userId, userArr[0].id));
+
+    // Generate a secure random token (sent to email in production)
+    const token = crypto.randomUUID();
+    const tokenHash = await bcrypt.hash(token, 8);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+
+    await db.insert(schema.passwordResetTokens).values({
+      userId: userArr[0].id,
+      tokenHash,
+      expiresAt,
+    });
+
+    const resetUrl = `${env.APP_URL || "http://localhost:3000"}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+
+    // Log the reset link — in production, replace with an email service (Resend, Mailgun, etc.)
+    console.log(`[PASSWORD RESET] For ${email}: ${resetUrl}`);
+
+    return json(
+      { success: true, message: "If an account with that email exists, a reset link has been sent." },
+      200,
+      corsHeaders
+    );
+  } catch (e) {
+    console.error("[handleForgotPassword]", e);
+    return json({ error: "Failed to process request" }, 500, corsHeaders);
+  }
+}
+
+export async function handleResetPassword(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const { token, email, password } = await req.json();
+
+    if (!token || !email || !password) {
+      return json({ error: "Token, email, and new password are required" }, 400, corsHeaders);
+    }
+    if (password.length < 8) {
+      return json({ error: "Password must be at least 8 characters" }, 400, corsHeaders);
+    }
+
+    const userArr = await db.select().from(schema.users).where(eq(schema.users.email, email.toLowerCase().trim()));
+    if (userArr.length === 0) {
+      return json({ error: "Invalid token or email" }, 400, corsHeaders);
+    }
+    const user = userArr[0];
+
+    // Find the token record (only unused tokens)
+    const tokenRecords = await db
+      .select()
+      .from(schema.passwordResetTokens)
+      .where(and(
+        eq(schema.passwordResetTokens.userId, user.id),
+        isNull(schema.passwordResetTokens.usedAt)
+      ));
+
+    let validToken = false;
+    for (const record of tokenRecords) {
+      const isValid = await bcrypt.compare(token, record.tokenHash);
+      if (isValid && new Date(record.expiresAt) > new Date()) {
+        validToken = true;
+        break;
+      }
+    }
+
+    if (!validToken) {
+      return json({ error: "Token is invalid or has expired" }, 400, corsHeaders);
+    }
+
+    // Mark token as used
+    await db
+      .update(schema.passwordResetTokens)
+      .set({ usedAt: new Date().toISOString() })
+      .where(and(
+        eq(schema.passwordResetTokens.userId, user.id),
+        isNull(schema.passwordResetTokens.usedAt)
+      ));
+
+    // Update password
+    const hashed = await bcrypt.hash(password, 10);
+    await db.update(schema.users).set({ password: hashed }).where(eq(schema.users.id, user.id));
+
+    return json({ success: true, message: "Password has been reset. You can now log in." }, 200, corsHeaders);
+  } catch (e) {
+    console.error("[handleResetPassword]", e);
+    return json({ error: "Failed to reset password" }, 500, corsHeaders);
+  }
+}
+
 export async function handleCreateOrganization(req: Request, env: Env, db: any) {
   const corsHeaders = getCorsHeaders(req, env);
   try {
@@ -225,6 +332,46 @@ export async function handleUpdateUserProfile(req: Request, env: Env, db: any) {
     let message = "Internal server error";
     if (e instanceof Error) message = e.message;
     console.error("/api/user/profile update error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleChangePassword(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const { currentPassword, newPassword } = await req.json();
+
+    if (!currentPassword || !newPassword) {
+      return json({ error: "Current password and new password are required" }, 400, corsHeaders);
+    }
+    if (newPassword.length < 8) {
+      return json({ error: "New password must be at least 8 characters" }, 400, corsHeaders);
+    }
+
+    const userRows = await db.select().from(schema.users).where(eq(schema.users.id, user.id));
+    if (userRows.length === 0) {
+      return json({ error: "User not found" }, 404, corsHeaders);
+    }
+    const userRecord = userRows[0];
+
+    const valid = await bcrypt.compare(currentPassword, userRecord.password);
+    if (!valid) {
+      return json({ error: "Current password is incorrect" }, 400, corsHeaders);
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await db.update(schema.users).set({ password: hashed }).where(eq(schema.users.id, user.id));
+
+    return json({ success: true, message: "Password updated successfully" }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/user/change-password error:", e);
     return json({ error: message }, 500, corsHeaders);
   }
 }
@@ -393,6 +540,177 @@ export async function handleRemoveOrganizationAdmin(req: Request, env: Env, db: 
     let message = "Internal server error";
     if (e instanceof Error) message = e.message;
     console.error("/api/organization/admins/remove error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+async function getRoleName(db: any, roleId: number): Promise<string> {
+  const roleArr = await db.select().from(schema.roles).where(eq(schema.roles.id, roleId));
+  return roleArr[0]?.name || "unknown";
+}
+
+async function getAllRoles(db: any): Promise<Map<number, string>> {
+  const all = await db.select().from(schema.roles);
+  return new Map(all.map((r: any) => [r.id, r.name]));
+}
+
+export async function handleOrganizationUsers(req: Request, env: Env, db: any) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const organization = await getOrganizationById(db, user.organizationId);
+    if (!organization) {
+      return json({ error: "Organization not found" }, 404, corsHeaders);
+    }
+
+    const roleMap = await getAllRoles(db);
+    const orgUsers = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.organizationId, organization.id));
+
+    return json(
+      {
+        users: orgUsers.map((u: any) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          phone: u.phone,
+          roleId: u.roleId,
+          role: roleMap.get(u.roleId) || "unknown",
+          isSuperAdmin: u.id === organization.createdBy,
+          createdAt: u.createdAt,
+        })),
+      },
+      200,
+      corsHeaders
+    );
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/organization/users error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleUpdateUserRole(req: Request, env: Env, db: any, userId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const currentUser = await getUserWithRole(req, env, db);
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const organization = await getOrganizationById(db, currentUser.organizationId);
+    if (!organization) {
+      return json({ error: "Organization not found" }, 404, corsHeaders);
+    }
+
+    const isSuperAdmin = organization.createdBy === currentUser.id;
+
+    const body = await req.json();
+    const newRoleName = typeof body.role === "string" ? body.role.trim().toLowerCase() : "";
+
+    const validRoles = ["admin", "evaluator", "submitter"];
+    if (!validRoles.includes(newRoleName)) {
+      return json({ error: `Role must be one of: ${validRoles.join(", ")}` }, 400, corsHeaders);
+    }
+
+    // Find target user in org
+    const targetArr = await db
+      .select()
+      .from(schema.users)
+      .where(and(eq(schema.users.id, userId), eq(schema.users.organizationId, organization.id)));
+    if (targetArr.length === 0) {
+      return json({ error: "User not found in organization" }, 404, corsHeaders);
+    }
+    const target = targetArr[0];
+
+    // Can't change superadmin's role unless you're the superadmin
+    if (target.id === organization.createdBy && !isSuperAdmin) {
+      return json({ error: "Only superadmin can change superadmin role" }, 403, corsHeaders);
+    }
+
+    // Only superadmin can create/remove admins
+    if (newRoleName === "admin" && !isSuperAdmin) {
+      return json({ error: "Only superadmin can assign admin role" }, 403, corsHeaders);
+    }
+
+    const roleArr = await db.select().from(schema.roles).where(eq(schema.roles.name, newRoleName));
+    if (roleArr.length === 0) {
+      return json({ error: `Role '${newRoleName}' does not exist` }, 400, corsHeaders);
+    }
+
+    await db.update(schema.users).set({ roleId: roleArr[0].id }).where(eq(schema.users.id, userId));
+
+    return json(
+      {
+        success: true,
+        user: {
+          id: target.id,
+          name: target.name,
+          email: target.email,
+          role: newRoleName,
+          isSuperAdmin: target.id === organization.createdBy,
+        },
+      },
+      200,
+      corsHeaders
+    );
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/organization/users/update-role error:", e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleDeleteUser(req: Request, env: Env, db: any, userId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const currentUser = await getUserWithRole(req, env, db);
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const organization = await getOrganizationById(db, currentUser.organizationId);
+    if (!organization) {
+      return json({ error: "Organization not found" }, 404, corsHeaders);
+    }
+
+    const isSuperAdmin = organization.createdBy === currentUser.id;
+
+    const targetArr = await db
+      .select()
+      .from(schema.users)
+      .where(and(eq(schema.users.id, userId), eq(schema.users.organizationId, organization.id)));
+    if (targetArr.length === 0) {
+      return json({ error: "User not found in organization" }, 404, corsHeaders);
+    }
+    const target = targetArr[0];
+
+    // Can't delete yourself
+    if (target.id === currentUser.id) {
+      return json({ error: "You cannot delete yourself" }, 400, corsHeaders);
+    }
+
+    // Can't delete superadmin unless you're the superadmin
+    if (target.id === organization.createdBy && !isSuperAdmin) {
+      return json({ error: "Only superadmin can delete superadmin account" }, 403, corsHeaders);
+    }
+
+    // Remove user from org (rather than hard delete, to preserve FK integrity)
+    await db.update(schema.users).set({ organizationId: null }).where(eq(schema.users.id, userId));
+
+    return json({ success: true }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error("/api/organization/users/delete error:", e);
     return json({ error: message }, 500, corsHeaders);
   }
 }
@@ -643,6 +961,140 @@ export async function handleProjectDetail(
     let message = "Internal server error";
     if (e instanceof Error) message = e.message;
     console.error(`/api/projects/${projectId} error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleUpdateProject(
+  req: Request,
+  env: Env,
+  db: any,
+  projectId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) {
+      return json({ error: "Project not found" }, 404, corsHeaders);
+    }
+
+    const body = await req.json();
+    const { name, description, status } = body;
+
+    const updates: Record<string, unknown> = {};
+    if (typeof name === "string") {
+      const trimmed = name.trim();
+      if (!trimmed) return json({ error: "Name cannot be empty" }, 400, corsHeaders);
+      if (trimmed.length > 120) return json({ error: "Name must be 120 characters or fewer" }, 400, corsHeaders);
+      updates.name = trimmed;
+    }
+    if (typeof description === "string") {
+      updates.description = description.trim() || null;
+    }
+    if (typeof status === "string") {
+      if (!["active", "paused", "archived", "closed"].includes(status)) {
+        return json({ error: "Invalid status. Must be: active, paused, archived, or closed" }, 400, corsHeaders);
+      }
+      updates.status = status;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return json({ error: "No valid fields to update" }, 400, corsHeaders);
+    }
+
+    await db
+      .update(schema.projects)
+      .set({ ...updates, updatedAt: new Date().toISOString() })
+      .where(eq(schema.projects.id, projectId));
+
+    const updatedRows = await db.select().from(schema.projects).where(eq(schema.projects.id, projectId));
+    return json({ project: updatedRows[0] }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId} PATCH error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleDeleteProject(
+  req: Request,
+  env: Env,
+  db: any,
+  projectId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) {
+      return json({ error: "Project not found" }, 404, corsHeaders);
+    }
+
+    // Gather all child records for cascade delete
+    const [rubrics, forms, submissions, formShareRows, projectVideoRows] = await Promise.all([
+      db.select().from(schema.projectRubrics).where(eq(schema.projectRubrics.projectId, projectId)),
+      db.select().from(schema.projectForms).where(eq(schema.projectForms.projectId, projectId)),
+      db.select().from(schema.projectFormSubmissions).where(eq(schema.projectFormSubmissions.projectId, projectId)),
+      db.select().from(schema.projectFormShares).where(eq(schema.projectFormShares.projectId, projectId)),
+      db.select().from(schema.projectVideos).where(eq(schema.projectVideos.projectId, projectId)),
+    ]);
+
+    const submissionIds = submissions.map((s: any) => s.id);
+    const formIds = forms.map((f: any) => f.id);
+    const rubricIds = rubrics.map((r: any) => r.id);
+    const formShareIds = formShareRows.map((fs: any) => fs.id);
+    const projectVideoIds = projectVideoRows.map((v: any) => v.id);
+
+    // Delete attachments (R2 files) for each submission
+    if (submissionIds.length > 0) {
+      const attachments = await db
+        .select()
+        .from(schema.projectFormSubmissionAttachments)
+        .where(inArray(schema.projectFormSubmissionAttachments.submissionId, submissionIds));
+      for (const attachment of attachments) {
+        if (attachment.r2Key && env.BUCKET) {
+          try { await env.BUCKET.delete(attachment.r2Key); } catch { /* R2 delete is best-effort */ }
+        }
+      }
+      await db
+        .delete(schema.projectFormSubmissionAttachments)
+        .where(inArray(schema.projectFormSubmissionAttachments.submissionId, submissionIds));
+    }
+
+    if (projectVideoIds.length > 0) {
+      await db.delete(schema.projectVideos).where(inArray(schema.projectVideos.id, projectVideoIds));
+    }
+    if (formIds.length > 0) {
+      await db.delete(schema.projectForms).where(inArray(schema.projectForms.id, formIds));
+    }
+    if (rubricIds.length > 0) {
+      await db.delete(schema.projectRubrics).where(inArray(schema.projectRubrics.id, rubricIds));
+    }
+    if (submissionIds.length > 0) {
+      await db.delete(schema.projectFormSubmissions).where(inArray(schema.projectFormSubmissions.id, submissionIds));
+    }
+    if (formShareIds.length > 0) {
+      await db.delete(schema.projectFormShares).where(inArray(schema.projectFormShares.id, formShareIds));
+    }
+
+    await db.delete(schema.projectEvaluators).where(eq(schema.projectEvaluators.projectId, projectId));
+    await db.delete(schema.projects).where(eq(schema.projects.id, projectId));
+
+    return json({ success: true, message: "Project and all related data deleted" }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId} DELETE error:`, e);
     return json({ error: message }, 500, corsHeaders);
   }
 }
@@ -1077,6 +1529,122 @@ export async function handleProjectRubrics(req: Request, env: Env, db: any, proj
   }
 }
 
+export async function handleUpdateProjectRubric(req: Request, env: Env, db: any, projectId: number, rubricId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    // Verify rubric belongs to this project
+    const existingRubrics = await db
+      .select()
+      .from(schema.projectRubrics)
+      .where(and(eq(schema.projectRubrics.projectId, projectId), eq(schema.projectRubrics.id, rubricId)));
+    if (existingRubrics.length === 0) {
+      return json({ error: "Rubric not found" }, 404, corsHeaders);
+    }
+    const existing = existingRubrics[0];
+
+    const body = await req.json();
+    const { title, description, weight } = body;
+
+    const updates: Record<string, unknown> = {};
+    if (typeof title === "string") {
+      const trimmed = title.trim();
+      if (!trimmed) return json({ error: "Title cannot be empty" }, 400, corsHeaders);
+      updates.title = trimmed;
+    }
+    if (typeof description === "string") {
+      updates.description = description.trim() || null;
+    }
+
+    // Weight update: must maintain 100% total across ALL rubrics
+    if (typeof weight === "number" && Number.isFinite(weight)) {
+      const otherRubricsTotal = (await db
+        .select()
+        .from(schema.projectRubrics)
+        .where(and(eq(schema.projectRubrics.projectId, projectId), eq(schema.projectRubrics.id, rubricId)))
+      ).reduce((sum: number, r: any) => sum + (r.weight || 0), 0) - (existing.weight || 0);
+
+      const newTotal = otherRubricsTotal + weight;
+      if (newTotal !== 100) {
+        return json(
+          {
+            error: `Changing this weight to ${weight} would make total ${newTotal}%, not 100%. Adjust other rubrics first so their total (excluding this one) is ${100 - weight}.`,
+          },
+          400,
+          corsHeaders
+        );
+      }
+      updates.weight = Math.max(0, Math.min(100, Math.round(weight)));
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return json({ error: "No valid fields to update" }, 400, corsHeaders);
+    }
+
+    await db
+      .update(schema.projectRubrics)
+      .set({ ...updates, updatedAt: new Date().toISOString() })
+      .where(eq(schema.projectRubrics.id, rubricId));
+
+    const updatedRows = await db
+      .select()
+      .from(schema.projectRubrics)
+      .where(and(eq(schema.projectRubrics.projectId, projectId), eq(schema.projectRubrics.id, rubricId)));
+    updatedRows.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+    return json({ rubric: updatedRows[0] }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId}/rubrics/${rubricId} PATCH error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleDeleteProjectRubric(req: Request, env: Env, db: any, projectId: number, rubricId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const existingRubrics = await db
+      .select()
+      .from(schema.projectRubrics)
+      .where(and(eq(schema.projectRubrics.projectId, projectId), eq(schema.projectRubrics.id, rubricId)));
+    if (existingRubrics.length === 0) {
+      return json({ error: "Rubric not found" }, 404, corsHeaders);
+    }
+
+    // Prevent deleting the last rubric
+    const allRubrics = await db
+      .select()
+      .from(schema.projectRubrics)
+      .where(eq(schema.projectRubrics.projectId, projectId));
+    if (allRubrics.length <= 1) {
+      return json({ error: "Cannot delete the last rubric. Add another rubric first." }, 400, corsHeaders);
+    }
+
+    await db.delete(schema.projectRubrics).where(eq(schema.projectRubrics.id, rubricId));
+
+    return json({ success: true, message: "Rubric deleted." }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId}/rubrics/${rubricId} DELETE error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
 export async function handleProjectForm(req: Request, env: Env, db: any, projectId: number) {
   const corsHeaders = getCorsHeaders(req, env);
   try {
@@ -1134,6 +1702,138 @@ export async function handleProjectForm(req: Request, env: Env, db: any, project
     let message = "Internal server error";
     if (e instanceof Error) message = e.message;
     console.error(`/api/projects/${projectId}/form error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+async function getProjectForm(db: any, projectId: number) {
+  const rows = await db
+    .select()
+    .from(schema.projectForms)
+    .where(eq(schema.projectForms.projectId, projectId));
+  return rows[0] || null;
+}
+
+async function saveProjectFormFields(db: any, projectId: number, fields: any[]) {
+  const fieldsJson = JSON.stringify(fields);
+  const existing = await getProjectForm(db, projectId);
+  if (existing) {
+    await db
+      .update(schema.projectForms)
+      .set({ fieldsJson })
+      .where(eq(schema.projectForms.projectId, projectId));
+  } else {
+    await db.insert(schema.projectForms).values({ projectId, fieldsJson });
+  }
+}
+
+export async function handleProjectFormField(req: Request, env: Env, db: any, projectId: number, fieldIndex: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const record = await getProjectForm(db, projectId);
+    let fields: any[] = record?.fieldsJson ? normalizeProjectFormFields(JSON.parse(record.fieldsJson)) : [];
+    if (fields.length === 0) {
+      return json({ error: "Form has no fields." }, 400, corsHeaders);
+    }
+
+    if (fieldIndex < 0 || fieldIndex >= fields.length) {
+      return json({ error: "Field index out of range." }, 400, corsHeaders);
+    }
+
+    if (req.method === "PATCH") {
+      const body = await req.json();
+      const { label, type, required, attachmentTypes } = body;
+
+      if (typeof label === "string") {
+        const trimmed = label.trim();
+        if (!trimmed) return json({ error: "Field label cannot be empty." }, 400, corsHeaders);
+        fields[fieldIndex].label = trimmed;
+      }
+      if (typeof type === "string") {
+        const validTypes = ["text", "textarea", "number", "date", "attachment"];
+        if (!validTypes.includes(type)) {
+          return json({ error: `Invalid field type. Must be one of: ${validTypes.join(", ")}` }, 400, corsHeaders);
+        }
+        fields[fieldIndex].type = type;
+        if (type !== "attachment") {
+          delete fields[fieldIndex].attachmentTypes;
+        } else {
+          fields[fieldIndex].attachmentTypes = Array.isArray(attachmentTypes) ? attachmentTypes : [];
+        }
+      }
+      if (typeof required === "boolean") {
+        fields[fieldIndex].required = required;
+      }
+      if (Array.isArray(attachmentTypes)) {
+        fields[fieldIndex].attachmentTypes = attachmentTypes;
+      }
+
+      await saveProjectFormFields(db, projectId, fields);
+      return json({ fields }, 200, corsHeaders);
+    }
+
+    if (req.method === "DELETE") {
+      const isMandatoryVideo = isMandatoryVideoField(fields[fieldIndex]);
+      if (isMandatoryVideo) {
+        return json(
+          { error: "Cannot delete the mandatory video submission field." },
+          400,
+          corsHeaders
+        );
+      }
+      fields.splice(fieldIndex, 1);
+      await saveProjectFormFields(db, projectId, fields);
+      return json({ fields }, 200, corsHeaders);
+    }
+
+    return json({ error: "Method not allowed." }, 405, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId}/form/fields/${fieldIndex} error:`, e);
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleAddProjectFormField(req: Request, env: Env, db: any, projectId: number) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const body = await req.json();
+    const { label, type, required, attachmentTypes } = body;
+
+    const newField: Record<string, unknown> = {
+      label: typeof label === "string" && label.trim() ? label.trim() : "New Field",
+      type: ["text", "textarea", "number", "date", "attachment"].includes(type) ? type : "text",
+      required: Boolean(required),
+    };
+    if (newField.type === "attachment") {
+      newField.attachmentTypes = Array.isArray(attachmentTypes) ? attachmentTypes : [];
+    }
+
+    const record = await getProjectForm(db, projectId);
+    let fields: any[] = record?.fieldsJson ? normalizeProjectFormFields(JSON.parse(record.fieldsJson)) : [];
+    fields.push(newField);
+
+    await saveProjectFormFields(db, projectId, fields);
+    return json({ fields }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    console.error(`/api/projects/${projectId}/form/fields POST error:`, e);
     return json({ error: message }, 500, corsHeaders);
   }
 }
@@ -1512,6 +2212,23 @@ export async function handleProjectVideoAssignmentContext(
     const evaluators = await enrichEvaluatorsWithProfileName(db, evaluatorRows);
 
     const videos = await getProjectSubmissionAttachmentVideos(db, projectId);
+
+    // Count how many videos are currently assigned to each evaluator
+    const assignedCountByEvaluatorId = new Map<number, number>();
+    for (const video of videos) {
+      if (video.assignedEvaluatorId) {
+        assignedCountByEvaluatorId.set(
+          video.assignedEvaluatorId,
+          (assignedCountByEvaluatorId.get(video.assignedEvaluatorId) || 0) + 1
+        );
+      }
+    }
+
+    // Attach current assignment count to each evaluator so the UI can show it
+    const evaluatorsWithCounts = evaluators.map((ev: any) => ({
+      ...ev,
+      assignedCount: assignedCountByEvaluatorId.get(ev.id) || 0,
+    }));
     const unassignedVideos = videos.filter(
       (video: any) => !video.assignedEvaluatorId && (video.reviewStatus || "unassigned") === "unassigned"
     );
@@ -1521,7 +2238,7 @@ export async function handleProjectVideoAssignmentContext(
         project: { id: project.id, name: project.name },
         totalVideos: videos.length,
         unassignedVideos: unassignedVideos.length,
-        evaluators,
+        evaluators: evaluatorsWithCounts,
       },
       200,
       corsHeaders
@@ -1566,24 +2283,19 @@ export async function handleAssignProjectVideos(
       .where(eq(schema.projectEvaluators.projectId, projectId));
     const validEvaluatorIds = new Set(assignmentRows.map((row: any) => row.evaluatorId));
 
-    let requestedTotal = 0;
     const normalized = allocations
       .map((allocation: any) => ({
         evaluatorId: Number(allocation.evaluatorId),
-        count: Number(allocation.count),
+        additionalCount: Math.max(0, Math.floor(Number(allocation.additionalCount) || 0)),
       }))
-      .filter((allocation: any) => Number.isFinite(allocation.evaluatorId) && Number.isFinite(allocation.count))
-      .map((allocation: any) => ({
-        evaluatorId: allocation.evaluatorId,
-        count: Math.max(0, Math.floor(allocation.count)),
-      }))
-      .filter((allocation: any) => allocation.count > 0);
+      .filter((allocation: any) => Number.isFinite(allocation.evaluatorId) && allocation.additionalCount > 0);
+
+    const requestedTotal = normalized.reduce((sum, a) => sum + a.additionalCount, 0);
 
     for (const allocation of normalized) {
       if (!validEvaluatorIds.has(allocation.evaluatorId)) {
         return json({ error: `Evaluator ${allocation.evaluatorId} is not assigned to this project` }, 400, corsHeaders);
       }
-      requestedTotal += allocation.count;
     }
 
     const videos = await getProjectSubmissionAttachmentVideos(db, projectId);
@@ -1601,7 +2313,7 @@ export async function handleAssignProjectVideos(
     const randomized = shuffle(unassigned);
     let cursor = 0;
     for (const allocation of normalized) {
-      for (let i = 0; i < allocation.count; i += 1) {
+      for (let i = 0; i < allocation.additionalCount; i += 1) {
         const video = randomized[cursor];
         if (!video) break;
         cursor += 1;
@@ -1616,6 +2328,53 @@ export async function handleAssignProjectVideos(
     }
 
     return json({ success: true, assignedVideos: cursor }, 200, corsHeaders);
+  } catch (e) {
+    let message = "Internal server error";
+    if (e instanceof Error) message = e.message;
+    return json({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleUnassignVideos(
+  req: Request,
+  env: Env,
+  db: any,
+  projectId: number
+) {
+  const corsHeaders = getCorsHeaders(req, env);
+  try {
+    const user = await getUserWithRole(req, env, db);
+    if (!user || user.role !== "admin" || !user.organizationId) {
+      return json({ error: "Unauthorized" }, 403, corsHeaders);
+    }
+    const project = await getProjectForAdmin(db, user, projectId);
+    if (!project) return json({ error: "Project not found" }, 404, corsHeaders);
+
+    const body = await req.json();
+    const { evaluatorId, count } = body;
+    const unassignCount = Math.max(0, Math.floor(Number(count) || 0));
+
+    if (!Number.isFinite(Number(evaluatorId)) || unassignCount === 0) {
+      return json({ error: "evaluatorId and a positive count are required" }, 400, corsHeaders);
+    }
+
+    // Find videos assigned to this evaluator that haven't been reviewed yet
+    const videos = await getProjectSubmissionAttachmentVideos(db, projectId);
+    const toUnassign = videos.filter(
+      (v: any) => v.assignedEvaluatorId === evaluatorId && v.reviewStatus !== "reviewed"
+    );
+
+    if (toUnassign.length === 0) {
+      return json({ success: true, unassignedVideos: 0 }, 200, corsHeaders);
+    }
+
+    const toUnassignIds = toUnassign.slice(0, unassignCount).map((v: any) => v.id);
+    await db
+      .update(schema.projectFormSubmissionAttachments)
+      .set({ assignedEvaluatorId: null, reviewStatus: "unassigned", reviewedAt: null })
+      .where(inArray(schema.projectFormSubmissionAttachments.id, toUnassignIds));
+
+    return json({ success: true, unassignedVideos: toUnassignIds.length }, 200, corsHeaders);
   } catch (e) {
     let message = "Internal server error";
     if (e instanceof Error) message = e.message;

@@ -93,7 +93,7 @@ export default function TestProjectFormPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Temporary Test Form</h1>
         <Link
           href={`/dashboard/projects/${projectId}/form`}
-          className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2 text-sm font-medium text-indigo-700 transition hover:from-indigo-100"
+          className="rounded-xl border border-[var(--color-primary)]/40 bg-[var(--glow-primary-subtle)] px-3 py-2 text-sm font-medium text-[var(--color-primary)] transition hover:bg-[var(--glow-primary)]"
         >
           Back to Manage Form
         </Link>
@@ -101,8 +101,8 @@ export default function TestProjectFormPage() {
 
       <section className="surface-card rounded-2xl p-6">
         {loading ? <div className="text-sm text-muted">Loading form config...</div> : null}
-        {error ? <div className="text-sm text-rose-600 mb-3">{error}</div> : null}
-        {success ? <div className="text-sm text-emerald-600 mb-3">{success}</div> : null}
+        {error ? <div className="text-sm text-[var(--color-primary)] mb-3">{error}</div> : null}
+        {success ? <div className="text-sm text-emerald-400 mb-3">{success}</div> : null}
 
       {!loading ? (
         <form onSubmit={submitTestForm} className="space-y-3">

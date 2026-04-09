@@ -81,11 +81,11 @@ export default function AdminSnapshot() {
   }, [projectPayload, videoGroups, evaluatorGroups]);
 
   if (loading) {
-    return <div className="surface-card rounded-2xl p-6 text-sm text-slate-500">Loading snapshot...</div>;
+    return <div className="surface-card rounded-2xl p-6 text-sm text-[var(--color-text-muted)]">Loading snapshot...</div>;
   }
 
   if (error) {
-    return <div className="surface-card rounded-2xl p-6 text-sm text-rose-600">{error}</div>;
+    return <div className="surface-card rounded-2xl p-6 text-sm text-[var(--color-primary)]">{error}</div>;
   }
 
   return (
@@ -102,8 +102,8 @@ export default function AdminSnapshot() {
 function Metric({ label, value }: { label: string; value: number }) {
   return (
     <div className="surface-card rounded-2xl p-6">
-      <div className="text-[15px] text-slate-600">{label}</div>
-      <div className="text-5xl leading-none font-semibold text-slate-900 mt-2">{value}</div>
+      <div className="text-[15px] text-[var(--color-text-muted)]">{label}</div>
+      <div className="text-5xl leading-none font-semibold text-[var(--color-text)] mt-2">{value}</div>
     </div>
   );
 }

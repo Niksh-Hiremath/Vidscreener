@@ -4,21 +4,33 @@ import {
   handleRegister,
   handleLogin,
   handleLogout,
+  handleForgotPassword,
+  handleResetPassword,
   handleCreateOrganization,
   handleUserProfile,
   handleUpdateUserProfile,
+  handleChangePassword,
   handleOrganizationAdmins,
   handleAddOrganizationAdmin,
   handleRemoveOrganizationAdmin,
   handleRenameOrganization,
   handleTransferSuperadmin,
   handleExitOrganization,
+  handleOrganizationUsers,
+  handleUpdateUserRole,
+  handleDeleteUser,
   handleProjectsList,
   handleCreateProject,
   handleProjectDetail,
+  handleUpdateProject,
+  handleDeleteProject,
   handleProjectOverview,
   handleProjectRubrics,
+  handleUpdateProjectRubric,
+  handleDeleteProjectRubric,
   handleProjectForm,
+  handleProjectFormField,
+  handleAddProjectFormField,
   handleProjectVideos,
   handleProjectVideoStream,
   handleOrganizationEvaluators,
@@ -28,6 +40,7 @@ import {
   handleAdminEvaluatorsGrouped,
   handleProjectVideoAssignmentContext,
   handleAssignProjectVideos,
+  handleUnassignVideos,
   handleRemoveProjectEvaluator,
   handleEvaluatorProjects,
   handleEvaluatorReviewQueue,
@@ -70,6 +83,16 @@ export default {
       return handleLogin(req, env, db);
     }
 
+    // Forgot password
+    if (url.pathname === "/api/auth/forgot-password" && req.method === "POST") {
+      return handleForgotPassword(req, env, db);
+    }
+
+    // Reset password
+    if (url.pathname === "/api/auth/reset-password" && req.method === "POST") {
+      return handleResetPassword(req, env, db);
+    }
+
     // Organization creation (admin only)
     if (url.pathname === "/api/organization/create" && req.method === "POST") {
       return handleCreateOrganization(req, env, db);
@@ -81,6 +104,11 @@ export default {
     }
     if (url.pathname === "/api/user/profile" && req.method === "POST") {
       return handleUpdateUserProfile(req, env, db);
+    }
+
+    // Change password
+    if (url.pathname === "/api/user/change-password" && req.method === "POST") {
+      return handleChangePassword(req, env, db);
     }
 
     // Organization admin management
@@ -106,6 +134,20 @@ export default {
 
     if (url.pathname === "/api/organization/exit" && req.method === "POST") {
       return handleExitOrganization(req, env, db);
+    }
+
+    if (url.pathname === "/api/organization/users" && req.method === "GET") {
+      return handleOrganizationUsers(req, env, db);
+    }
+
+    const orgUserRoleMatch = url.pathname.match(/^\/api\/organization\/users\/(\d+)\/role$/);
+    if (orgUserRoleMatch && req.method === "PATCH") {
+      return handleUpdateUserRole(req, env, db, Number(orgUserRoleMatch[1]));
+    }
+
+    const orgUserDeleteMatch = url.pathname.match(/^\/api\/organization\/users\/(\d+)$/);
+    if (orgUserDeleteMatch && req.method === "DELETE") {
+      return handleDeleteUser(req, env, db, Number(orgUserDeleteMatch[1]));
     }
 
     if (url.pathname === "/api/projects" && req.method === "GET") {
@@ -152,8 +194,11 @@ export default {
     }
 
     const projectMatch = url.pathname.match(/^\/api\/projects\/(\d+)$/);
-    if (projectMatch && req.method === "GET") {
-      return handleProjectDetail(req, env, db, Number(projectMatch[1]));
+    if (projectMatch) {
+      const id = Number(projectMatch[1]);
+      if (req.method === "GET") return handleProjectDetail(req, env, db, id);
+      if (req.method === "PATCH") return handleUpdateProject(req, env, db, id);
+      if (req.method === "DELETE") return handleDeleteProject(req, env, db, id);
     }
 
     const projectOverviewMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/overview$/);
@@ -166,9 +211,31 @@ export default {
       return handleProjectRubrics(req, env, db, Number(projectRubricsMatch[1]));
     }
 
+    const singleRubricMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/rubrics\/(\d+)$/);
+    if (singleRubricMatch) {
+      const pid = Number(singleRubricMatch[1]);
+      const rid = Number(singleRubricMatch[2]);
+      if (req.method === "PATCH") return handleUpdateProjectRubric(req, env, db, pid, rid);
+      if (req.method === "DELETE") return handleDeleteProjectRubric(req, env, db, pid, rid);
+    }
+
     const projectFormMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/form$/);
     if (projectFormMatch && (req.method === "GET" || req.method === "POST")) {
       return handleProjectForm(req, env, db, Number(projectFormMatch[1]));
+    }
+
+    const formFieldMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/form\/fields\/(\d+)$/);
+    if (formFieldMatch) {
+      const pid = Number(formFieldMatch[1]);
+      const idx = Number(formFieldMatch[2]);
+      if (req.method === "PATCH" || req.method === "DELETE") {
+        return handleProjectFormField(req, env, db, pid, idx);
+      }
+    }
+
+    const addFormFieldMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/form\/fields$/);
+    if (addFormFieldMatch && req.method === "POST") {
+      return handleAddProjectFormField(req, env, db, Number(addFormFieldMatch[1]));
     }
 
     const projectFormTestSubmitMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/form\/test-submit$/);
@@ -189,6 +256,11 @@ export default {
     const projectAssignVideosMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/videos\/assign$/);
     if (projectAssignVideosMatch && req.method === "POST") {
       return handleAssignProjectVideos(req, env, db, Number(projectAssignVideosMatch[1]));
+    }
+
+    const projectUnassignVideosMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/videos\/unassign$/);
+    if (projectUnassignVideosMatch && req.method === "POST") {
+      return handleUnassignVideos(req, env, db, Number(projectUnassignVideosMatch[1]));
     }
 
     const projectVideoStreamMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/videos\/(\d+)\/stream$/);

@@ -38,15 +38,6 @@ export default function ReviewQueuePage() {
         const payload = await res.json();
         if (!res.ok) throw new Error(payload.error || "Failed to load queue");
         setQueue(payload.queue || []);
-        
-        // Inject some mock data if queue is totally empty for design preview purposes.
-        if (!payload.queue || payload.queue.length === 0) {
-           setQueue([
-             { id: 1, projectId: 101, projectName: "YCL Admissions 2026", title: "Applicant #4022", status: "pending" },
-             { id: 2, projectId: 101, projectName: "YCL Admissions 2026", title: "Applicant #4089", status: "reviewed" },
-             { id: 3, projectId: 102, projectName: "Engineering Hiring Q3", title: "Frontend Role - Sarah T.", status: "pending" },
-           ]);
-        }
       } catch (e: any) {
         setError(e.message || "Failed to load queue");
       } finally {
@@ -87,7 +78,7 @@ export default function ReviewQueuePage() {
       ) : null}
       
       {error ? (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-medium">{error}</div>
+        <div className="bg-rose-900/30 border border-rose-800 text-rose-400 px-4 py-3 rounded-xl text-sm font-medium">{error}</div>
       ) : null}
 
       {!loading && !error && queue.length > 0 && (
@@ -102,11 +93,11 @@ export default function ReviewQueuePage() {
           </div>
           <div className="bg-[var(--surface-1)] border border-[var(--border-strong)] rounded-2xl p-6 shadow-[var(--shadow-sm)]">
              <div className="text-[11px] font-semibold tracking-wider text-[var(--muted)] uppercase mb-2">Pending</div>
-             <div className="text-4xl font-semibold tracking-tight text-amber-600">{queue.length - reviewedCount}</div>
+             <div className="text-4xl font-semibold tracking-tight text-amber-400">{queue.length - reviewedCount}</div>
           </div>
           <div className="bg-[var(--surface-1)] border border-[var(--border-strong)] rounded-2xl p-6 shadow-[var(--shadow-sm)]">
              <div className="text-[11px] font-semibold tracking-wider text-[var(--muted)] uppercase mb-2">Completed</div>
-             <div className="text-4xl font-semibold tracking-tight text-emerald-600">{reviewedCount}</div>
+             <div className="text-4xl font-semibold tracking-tight text-emerald-400">{reviewedCount}</div>
           </div>
         </section>
       )}
@@ -143,7 +134,7 @@ export default function ReviewQueuePage() {
                         {flags.length > 0 && (
                           <div className="flex flex-wrap gap-2 ml-[20px] sm:ml-0">
                              {flags.map(flag => (
-                               <span key={flag} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-[10px] uppercase font-bold tracking-wider">
+                               <span key={flag} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-900/30 border border-rose-800 text-rose-400 text-[10px] uppercase font-bold tracking-wider">
                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                                  {flag}
                                </span>
@@ -153,7 +144,7 @@ export default function ReviewQueuePage() {
                       </div>
 
                       <div className="flex items-center gap-4 shrink-0 px-[20px] sm:px-0">
-                        <span className={`text-[11px] font-bold uppercase tracking-wider ${isReviewed ? 'text-emerald-700' : 'text-amber-600'}`}>
+                        <span className={`text-[11px] font-bold uppercase tracking-wider ${isReviewed ? 'text-emerald-400' : 'text-amber-400'}`}>
                           {item.status}
                         </span>
                         <Link

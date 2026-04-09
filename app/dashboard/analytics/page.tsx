@@ -23,7 +23,7 @@ export default function AnalyticsPage() {
         <div className="bg-[var(--surface-1)] border border-[var(--border-strong)] rounded-2xl p-6 shadow-[var(--shadow-sm)] relative overflow-hidden group hover:border-[var(--foreground)] transition-colors">
           <div className="text-sm font-medium text-[var(--muted)] mb-3 tracking-wide uppercase">Total Submissions</div>
           <div className="text-4xl leading-none font-semibold tracking-tight text-[var(--foreground)]">1,204</div>
-          <div className="mt-4 text-[13px] font-semibold text-emerald-600 flex items-center gap-1.5">
+          <div className="mt-4 text-[13px] font-semibold text-emerald-400 flex items-center gap-1.5">
              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>
              12% vs last month
           </div>
@@ -44,7 +44,7 @@ export default function AnalyticsPage() {
             <div className="text-4xl leading-none font-semibold tracking-tight text-[var(--foreground)]">42</div>
             <div className="text-[var(--muted)] font-medium text-sm">/ day</div>
           </div>
-          <div className="mt-4 text-[13px] font-semibold text-emerald-600 flex items-center gap-1.5">
+          <div className="mt-4 text-[13px] font-semibold text-emerald-400 flex items-center gap-1.5">
              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>
              +5 from organization baseline
           </div>

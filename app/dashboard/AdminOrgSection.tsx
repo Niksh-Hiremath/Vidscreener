@@ -178,7 +178,7 @@ export default function AdminOrgSection({ user }: { user: any }) {
   }
 
   if (!data) {
-    return <div className="surface-card rounded-2xl p-6 text-rose-600">{error || "Failed to load dashboard."}</div>;
+    return <div className="surface-card rounded-2xl p-6 text-[var(--color-primary)]">{error || "Failed to load dashboard."}</div>;
   }
 
   return (
@@ -189,8 +189,8 @@ export default function AdminOrgSection({ user }: { user: any }) {
         <div className="text-sm text-muted">Access: {data.isSuperAdmin ? "Superadmin" : "Admin"}</div>
       </section>
 
-      {error ? <div className="surface-card rounded-2xl p-4 text-sm text-rose-600">{error}</div> : null}
-      {success ? <div className="surface-card rounded-2xl p-4 text-sm text-emerald-600">{success}</div> : null}
+      {error ? <div className="surface-card rounded-2xl p-4 text-sm text-[var(--color-primary)]">{error}</div> : null}
+      {success ? <div className="surface-card rounded-2xl p-4 text-sm text-emerald-400">{success}</div> : null}
 
       <section className="surface-card rounded-2xl p-6">
         <h2 className="text-lg font-semibold mb-3">Organization Admins</h2>

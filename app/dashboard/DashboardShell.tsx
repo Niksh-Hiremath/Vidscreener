@@ -136,28 +136,28 @@ export default function DashboardShell({
   );
 
   const userTitle = user.name || user.email;
-  const accentActive = "bg-indigo-50 border border-indigo-200 text-indigo-700";
-  const accentHover = "hover:bg-indigo-50 hover:text-indigo-700";
+  const accentActive = "bg-[var(--glow-primary)] border border-[var(--color-primary)]/40 text-[var(--color-primary)]";
+  const accentHover = "hover:bg-[var(--glow-primary)] hover:text-[var(--color-primary)]";
 
   return (
-    <div className="h-[calc(100dvh-67px)] overflow-hidden bg-transparent text-slate-900 flex">
+    <div className="h-[calc(100dvh-67px)] overflow-hidden bg-transparent text-[var(--color-text)] flex">
       <aside
-        className={`h-full border-r border-[var(--border-soft)] bg-white transition-all duration-200 ${
+        className={`h-full border-r border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-200 ${
           collapsed ? "w-20" : "w-72"
         }`}
       >
         <div className="h-full flex flex-col">
-          <div className="p-4 border-b border-[var(--border-soft)]">
+          <div className="p-4 border-b border-[var(--color-border)]">
             <div className={`flex items-center ${collapsed ? "justify-center" :  "gap-2 justify-between"}`}>
               {!collapsed && (
                 <div>
-                  <div className="text-sm font-semibold tracking-wide text-slate-900">VidScreener</div>
-                  <div className="text-xs text-muted">AI-assisted evaluation</div>
+                  <div className="text-sm font-semibold tracking-wide text-[var(--color-text)]">VidScreener</div>
+                  <div className="text-xs text-[var(--color-text-muted)]">AI-assisted evaluation</div>
                 </div>
               )}
 
               <button
-                className={`button-secondary h-9 w-9 rounded-lg flex items-center justify-center transition hover:bg-slate-100 ${collapsed && "flex-grow p-2"}`}
+                className={`button-secondary h-9 w-9 rounded-lg flex items-center justify-center transition ${collapsed && "flex-grow p-2"}`}
                 onClick={() => setCollapsed((prev) => !prev)}
                 aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                 title={collapsed ? "Expand" : "Collapse"}
@@ -189,7 +189,7 @@ export default function DashboardShell({
                   key={item.href}
                   href={item.href}
                   className={`block rounded-xl px-3 py-2.5 text-sm transition ${
-                    active ? accentActive : `border border-transparent text-slate-600 ${accentHover}`
+                    active ? accentActive : `border border-transparent text-[var(--color-text-muted)] ${accentHover}`
                   }`}
                   title={collapsed ? item.label : undefined}
                 >
@@ -202,11 +202,11 @@ export default function DashboardShell({
             })}
           </nav>
 
-          <div className="p-3 border-t border-[var(--border-soft)] space-y-1.5">
+          <div className="p-3 border-t border-[var(--color-border)] space-y-1.5">
             <Link
               href="/dashboard/profile"
               className={`block rounded-xl px-3 py-2.5 text-sm transition ${
-                pathname === "/dashboard/profile" ? accentActive : `text-slate-600 ${accentHover}`
+                pathname === "/dashboard/profile" ? accentActive : `text-[var(--color-text-muted)] ${accentHover}`
               }`}
               title={collapsed ? "Profile" : undefined}
             >
@@ -215,7 +215,7 @@ export default function DashboardShell({
                 {!collapsed ? <span>Profile</span> : null}
               </span>
             </Link>
-            <a href="/logout" className="block rounded-xl px-3 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition" title={collapsed ? "Logout" : undefined}>
+            <a href="/logout" className="block rounded-xl px-3 py-2.5 text-sm text-[var(--color-primary)] hover:bg-[var(--glow-primary)] transition" title={collapsed ? "Logout" : undefined}>
               <span className={`flex items-center ${collapsed ? "justify-center" : "gap-2.5"}`}>
                 <span className="shrink-0">{NAV_ICONS.Logout}</span>
                 {!collapsed ? <span>Logout</span> : null}
@@ -224,7 +224,7 @@ export default function DashboardShell({
             {!collapsed ? (
               <div className="mt-2 surface-muted rounded-xl px-3 py-2">
                 <div className="text-sm font-medium truncate">{userTitle}</div>
-                <div className="text-xs text-muted capitalize">{user.role}</div>
+                <div className="text-xs text-[var(--color-text-muted)] capitalize">{user.role}</div>
               </div>
             ) : null}
           </div>
@@ -232,7 +232,7 @@ export default function DashboardShell({
       </aside>
 
       <main
-        className={`flex-1 min-w-0 h-full bg-[#f3f4f8] ${
+        className={`flex-1 min-w-0 h-full bg-[var(--color-bg)] ${
           isReviewDetailRoute ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-6 lg:p-7 scroll-subtle"
         }`}
       >

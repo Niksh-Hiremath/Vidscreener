@@ -101,31 +101,8 @@ export default function EvaluatorReviewPage() {
         
         let dataToUse: Payload;
 
-        // Mock fallback if API returns 404 for pure design iteration
         if (!res.ok) {
-           if (payload.error === "Not found") {
-              dataToUse = {
-                 video: { id: videoId, title: `Applicant Submission #${videoId}`, playbackUrl: "https://www.w3schools.com/html/mov_bbb.mp4" },
-                 project: { id: 101, name: "YCL Admissions 2026" },
-                 rubrics: [
-                    { id: 1, title: "Technical Depth", description: "Evaluates the fundamental problem solving structure.", weight: 40 },
-                    { id: 2, title: "Structured Communication", description: "Clarity and conciseness of thought.", weight: 60 }
-                 ],
-                 formFields: [
-                    { label: "Why do you want to join?", type: "textarea" },
-                    { label: "Resume", type: "attachment", attachmentTypes: ["pdf"] }
-                 ],
-                 submittedFields: {
-                    "Why do you want to join?-0": "I love solving complex scale problems."
-                 },
-                 attachments: [
-                    { id: 1, fileName: "resume.pdf", type: "pdf", formFieldKey: "attachment_1", url: "#" }
-                 ],
-                 review: { rubricBreakdown: [] }
-              };
-           } else {
-             throw new Error(payload.error || "Failed to load review context");
-           }
+          throw new Error(payload.error || "Failed to load review context");
         } else {
            dataToUse = payload;
         }
@@ -231,7 +208,7 @@ export default function EvaluatorReviewPage() {
   const flags = MOCK_FLAGS[videoId] || [];
 
   if (loading) return <div className="p-12 text-center text-[var(--muted)] animate-pulse font-medium">Loading evaluation studio...</div>;
-  if (error || !data) return <div className="p-12 text-center text-rose-600 font-medium">{error || "Not found"}</div>;
+  if (error || !data) return <div className="p-12 text-center text-[var(--color-primary)] font-medium">{error || "Not found"}</div>;
 
   const RADIUS = 28;
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -261,7 +238,7 @@ export default function EvaluatorReviewPage() {
                   const isCritical = flag.toLowerCase().includes("risk") || flag.toLowerCase().includes("scripted");
                   return (
                     <span key={idx} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] uppercase font-bold tracking-wider shadow-sm transition-colors ${
-                      isCritical ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200 text-amber-800'
+                      isCritical ? 'bg-rose-900/30 border-rose-800 text-rose-400' : 'bg-amber-900/30 border-amber-800 text-amber-400'
                     }`}>
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                       {flag}
@@ -342,7 +319,7 @@ export default function EvaluatorReviewPage() {
                             </span>
                          </div>
                       </div>
-                      <div className="text-[9px] font-bold text-emerald-700 tracking-wider uppercase bg-emerald-50 px-2.5 py-1 rounded-md shadow-sm border border-emerald-200 mt-1">High Confidence</div>
+                      <div className="text-[9px] font-bold text-emerald-400 tracking-wider uppercase bg-emerald-900/30 px-2.5 py-1 rounded-md shadow-sm border border-emerald-800 mt-1">High Confidence</div>
                    </div>
                 </div>
                 

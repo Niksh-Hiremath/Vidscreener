@@ -284,8 +284,8 @@ export default function ProjectFormPage() {
         </div>
       </header>
 
-      {error && <div className="mb-8 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-medium">{error}</div>}
-      {success && <div className="mb-8 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-medium">{success}</div>}
+      {error && <div className="mb-8 p-4 bg-rose-900/30 border border-rose-800 text-rose-400 rounded-xl text-sm font-medium">{error}</div>}
+      {success && <div className="mb-8 p-4 bg-emerald-900/30 border border-emerald-800 text-emerald-400 rounded-xl text-sm font-medium">{success}</div>}
 
       <div className="space-y-20">
         {/* Builder Canvas Area */}
@@ -410,7 +410,7 @@ export default function ProjectFormPage() {
                     className={`h-9 w-9 rounded-lg flex items-center justify-center transition-colors ${
                       isMandatoryVideo 
                          ? "text-[var(--border-strong)] cursor-not-allowed" 
-                         : "text-[var(--muted)] hover:text-rose-600 hover:bg-rose-50"
+                         : "text-[var(--muted)] hover:text-[var(--color-primary)] hover:bg-[var(--glow-primary)]"
                     }`}
                     title={isMandatoryVideo ? "Cannot remove base required field" : "Delete question"}
                   >
@@ -479,8 +479,8 @@ export default function ProjectFormPage() {
                     />
                   </div>
                   
-                  {shareError && <div className="text-sm font-medium text-rose-600 bg-rose-50 px-3 py-2 rounded-lg">{shareError}</div>}
-                  {shareSuccess && <div className="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg">{shareSuccess}</div>}
+                  {shareError && <div className="text-sm font-medium text-rose-400 bg-rose-900/30 px-3 py-2 rounded-lg">{shareError}</div>}
+                  {shareSuccess && <div className="text-sm font-medium text-emerald-400 bg-emerald-900/30 px-3 py-2 rounded-lg">{shareSuccess}</div>}
                   
                   <div className="pt-2">
                     <button
@@ -532,7 +532,7 @@ export default function ProjectFormPage() {
                                </div>
                                <div className="shrink-0">
                                    {share.submitted ? (
-                                      <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                      <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-900/30 text-emerald-400 border border-emerald-800">
                                         Submitted
                                       </span>
                                    ) : (
