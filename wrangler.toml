@@ -3,9 +3,6 @@ main = "wrangler/index.ts"
 compatibility_date = "2026-03-12"
 account_id = "78227b31bb029c09f05fe99b4d9b77cf"
 
-[vars]
-# JWT_SECRET is set in .dev.vars — never commit secrets to this file
-
 [[d1_databases]]
 binding = "DB"
 database_name = "vidscreener"

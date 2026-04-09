@@ -58,14 +58,14 @@ const PANELS: { key: PanelKey; label: string }[] = [
 ];
 
 const MOCK_FLAGS: Record<number, string[]> = {
-  1: ["No clear audio (01:10 - 01:45)", "Multiple languages detected"],
+  1: ["No clear audio (01:10 - 01:34)", "Multiple languages detected"],
   2: ["Highly scripted cadence detected"],
   3: ["Compliance Risk"],
 };
 
 // Generates a stable deterministic AI mock score for a rubric to show prefilling.
-function getMockAiScore(rubricId: number) {
-  return (rubricId % 4) + 6; // Returns a score between 6 and 9
+function getMockAiScore(rubricId: number, weight: number = 10): number {
+  return (rubricId % 4) + 6 - (10 - weight); // Returns a score between 6 and 9
 }
 
 export default function EvaluatorReviewPage() {
@@ -98,7 +98,7 @@ export default function EvaluatorReviewPage() {
           credentials: "include",
         });
         const payload = await res.json();
-        
+
         let dataToUse: Payload;
 
         if (!res.ok) {
@@ -112,13 +112,13 @@ export default function EvaluatorReviewPage() {
         // Pre-fill human overrides with AI scores (or existing human scores if they already adjusted it).
         const seed: Record<number, { rating: number; note: string }> = {};
         const nextExpandedNotes: Record<number, boolean> = {};
-        
+
         const existingBreakdown = dataToUse.review?.rubricBreakdown || [];
 
         dataToUse.rubrics.forEach(rubric => {
           const existing = existingBreakdown.find(b => b.rubricId === rubric.id);
           const aiMockScore = getMockAiScore(rubric.id);
-          
+
           // Use human rating if it exists and is > 0, else default to AI score
           const rating = (existing && existing.rating > 0) ? existing.rating : aiMockScore;
           const note = existing?.note || "";
@@ -200,7 +200,7 @@ export default function EvaluatorReviewPage() {
     // Also calculate the total AI score strictly from the AI base to display in the AI tab
     let totalAiScore = 0;
     for (const rubric of data.rubrics) {
-       totalAiScore += (getMockAiScore(rubric.id) / 10) * rubric.weight;
+       totalAiScore += (getMockAiScore(rubric.id, rubric.weight));
     }
     return { completed, total, totalScore: Number(totalScore.toFixed(2)), totalAiScore: Number(totalAiScore.toFixed(2)) };
   }, [data, reviewValues]);
@@ -229,7 +229,7 @@ export default function EvaluatorReviewPage() {
            <span className="text-[var(--border-strong)]">/</span>
            <span className="text-[12px] text-[var(--muted)] font-medium">{data.project.name}</span>
         </div>
-        
+
         <div className="flex flex-col md:flex-row md:items-center gap-4">
            <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] leading-none">{data.video.title}</h1>
            {flags.length > 0 && (
@@ -252,7 +252,7 @@ export default function EvaluatorReviewPage() {
 
       {/* Main Studio Split Grid - Original 2fr 1fr proportional sizing */}
       <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-4 flex-1 min-h-0 overflow-hidden">
-        
+
         {/* Left Side: Video & Tooling Tabs */}
         <div className="min-h-0 flex flex-col gap-3">
           <div className="rounded-xl border border-[var(--border-soft)] bg-black p-1 shadow-[var(--shadow-md)] flex-1 min-h-0 flex items-center justify-center">
@@ -285,32 +285,32 @@ export default function EvaluatorReviewPage() {
         {/* Right Side: Active Analysis Panel */}
         <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-1)] shadow-[var(--shadow-sm)] h-full overflow-hidden flex flex-col">
           <div className="flex-1 overflow-y-auto scroll-subtle p-5 md:p-6">
-            
+
             {/* 1. AI REVIEW SECTION */}
             {activePanel === "ai_review" ? (
               <div className="flex flex-col h-full animate-fade-in-up">
-                
+
                 {/* AI Review Header with Circular SVG Score Indicator */}
                 <div className="flex justify-between items-start mb-6 pb-6 border-b border-[var(--border-soft)]">
                    <div className="pt-1">
                      <h2 className="text-lg font-bold tracking-tight text-[var(--foreground)]">AI Synthesis</h2>
                      <p className="text-[13px] text-[var(--muted)] mt-1 font-medium">Automated first-pass evaluation.</p>
                    </div>
-                   
+
                    <div className="flex flex-col items-center gap-1.5">
                       <div className="relative w-[70px] h-[70px] flex items-center justify-center">
                          <svg className="w-full h-full transform -rotate-90">
                            {/* Tracker Background */}
                            <circle className="text-[var(--surface-2)]" strokeWidth="5.5" stroke="currentColor" fill="transparent" r={RADIUS} cx="35" cy="35" />
                            {/* Progressive Filled Track */}
-                           <circle 
-                             className="text-emerald-500 transition-all duration-1000 ease-out fill-transparent" 
-                             strokeWidth="5.5" 
-                             strokeDasharray={CIRCUMFERENCE} 
-                             strokeDashoffset={DASH_OFFSET} 
-                             strokeLinecap="round" 
-                             stroke="currentColor" 
-                             r={RADIUS} cx="35" cy="35" 
+                           <circle
+                             className="text-emerald-500 transition-all duration-1000 ease-out fill-transparent"
+                             strokeWidth="5.5"
+                             strokeDasharray={CIRCUMFERENCE}
+                             strokeDashoffset={DASH_OFFSET}
+                             strokeLinecap="round"
+                             stroke="currentColor"
+                             r={RADIUS} cx="35" cy="35"
                            />
                          </svg>
                          <div className="absolute inset-0 flex flex-col items-center justify-center pt-[2px]">
@@ -322,22 +322,22 @@ export default function EvaluatorReviewPage() {
                       <div className="text-[9px] font-bold text-emerald-400 tracking-wider uppercase bg-emerald-900/30 px-2.5 py-1 rounded-md shadow-sm border border-emerald-800 mt-1">High Confidence</div>
                    </div>
                 </div>
-                
+
                 <p className="text-[13.5px] text-[var(--muted)] leading-relaxed mb-6">
                   The applicant demonstrated exceptional foundational knowledge during the technical walkthrough. However, initial structured communication was lacking in the preamble. Score reflects deep technical depth balanced against minor presentation friction.
                 </p>
 
                 <h3 className="text-[11px] font-bold text-[var(--muted)] mb-3 tracking-wide uppercase">Key Timestamps</h3>
                 <div className="space-y-2.5 mb-8">
-                   <div onClick={() => seekToTime(45)} className="flex gap-3 border border-[var(--border-soft)] rounded-lg p-3 hover:border-[var(--foreground)] transition-colors cursor-pointer">
-                      <div className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--border-strong)] text-[var(--foreground)] font-mono text-[10px] font-semibold h-fit mt-0.5">00:45</div>
+                   <div onClick={() => seekToTime(4)} className="flex gap-3 border border-[var(--border-soft)] rounded-lg p-3 hover:border-[var(--foreground)] transition-colors cursor-pointer">
+                      <div className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--border-strong)] text-[var(--foreground)] font-mono text-[10px] font-semibold h-fit mt-0.5">00:04</div>
                       <div>
                         <div className="text-[13px] font-semibold text-[var(--foreground)] tracking-tight">Introduction Section</div>
                          <p className="text-[12px] text-[var(--muted)] mt-1.5 leading-snug">Rambles slightly before getting to the core value proposition.</p>
                       </div>
                    </div>
-                   <div onClick={() => seekToTime(135)} className="flex gap-3 border border-[var(--border-soft)] rounded-lg p-3 hover:border-[var(--foreground)] transition-colors cursor-pointer group">
-                      <div className="px-1.5 py-0.5 rounded bg-[var(--foreground)] text-[var(--background)] font-mono text-[10px] font-semibold h-fit mt-0.5 transition-transform group-hover:scale-105">02:15</div>
+                   <div onClick={() => seekToTime(50)} className="flex gap-3 border border-[var(--border-soft)] rounded-lg p-3 hover:border-[var(--foreground)] transition-colors cursor-pointer group">
+                      <div className="px-1.5 py-0.5 rounded bg-[var(--foreground)] text-[var(--background)] font-mono text-[10px] font-semibold h-fit mt-0.5 transition-transform group-hover:scale-105">00:50</div>
                       <div>
                         <div className="text-[13px] font-semibold text-[var(--foreground)] tracking-tight">Product Walkthrough</div>
                          <p className="text-[12px] text-[var(--muted)] mt-1.5 leading-snug">Executes a flawless technical walkthrough, highlighting primary edge cases.</p>
@@ -350,14 +350,14 @@ export default function EvaluatorReviewPage() {
                    {data.rubrics.map(rubric => (
                      <div key={rubric.id} className="flex items-center justify-between text-[13px] border-b border-[var(--border-soft)] pb-2 last:border-0 last:pb-0">
                        <span className="text-[var(--foreground)] font-medium">{rubric.title}</span>
-                       <span className="font-mono font-bold text-[var(--foreground)] bg-[var(--surface-2)] px-2 py-0.5 rounded border border-[var(--border-strong)] shadow-sm">{getMockAiScore(rubric.id)}/10</span>
+                       <span className="font-mono font-bold text-[var(--foreground)] bg-[var(--surface-2)] px-2 py-0.5 rounded border border-[var(--border-strong)] shadow-sm">{getMockAiScore(rubric.id, rubric.weight)}/{rubric.weight}</span>
                      </div>
                    ))}
                 </div>
 
                 <h3 className="text-[11px] font-bold text-[var(--muted)] mb-3 tracking-wide uppercase">Confidence Signal Block</h3>
                 <div className="bg-[var(--surface-1)] border border-[var(--border-strong)] rounded-xl p-5 shadow-sm">
-                   
+
                    {/* Intuitive Segmented Bar Timeline */}
                    <div className="flex w-full h-[26px] rounded-md overflow-hidden ring-1 ring-black/5 shadow-inner">
                       {/* Segment 1: High */}
@@ -369,15 +369,15 @@ export default function EvaluatorReviewPage() {
                          <div className="absolute opacity-0 group-hover:opacity-100 -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded font-semibold whitespace-nowrap z-10 shadow-lg pointer-events-none transition-opacity">00:45 Struggle</div>
                       </div>
                       {/* Segment 3: High */}
-                      <div onClick={() => seekToTime(135)} className="bg-emerald-500 w-[45%] border-r border-black/10 hover:brightness-110 transition-colors relative group cursor-pointer" title="02:15 - High Confidence">
-                         <div className="absolute opacity-0 group-hover:opacity-100 -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded font-semibold whitespace-nowrap z-10 shadow-lg pointer-events-none transition-opacity">02:15 Demo Core</div>
+                      <div onClick={() => seekToTime(75)} className="bg-emerald-500 w-[45%] border-r border-black/10 hover:brightness-110 transition-colors relative group cursor-pointer" title="01:15 - High Confidence">
+                         <div className="absolute opacity-0 group-hover:opacity-100 -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded font-semibold whitespace-nowrap z-10 shadow-lg pointer-events-none transition-opacity">01:15 Demo Core</div>
                       </div>
                       {/* Segment 4: Medium */}
-                      <div onClick={() => seekToTime(390)} className="bg-emerald-300 w-[20%] hover:brightness-110 transition-colors relative group cursor-pointer" title="06:30 - Medium Confidence">
-                         <div className="absolute opacity-0 group-hover:opacity-100 -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded font-semibold whitespace-nowrap z-10 shadow-lg pointer-events-none transition-opacity">06:30 Conclusion</div>
+                      <div onClick={() => seekToTime(86)} className="bg-emerald-300 w-[20%] hover:brightness-110 transition-colors relative group cursor-pointer" title="01:26 - Medium Confidence">
+                         <div className="absolute opacity-0 group-hover:opacity-100 -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded font-semibold whitespace-nowrap z-10 shadow-lg pointer-events-none transition-opacity">01:26 Conclusion</div>
                       </div>
                    </div>
-                   
+
                    <div className="flex justify-between mt-4 text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider">
                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 shadow-sm"></span> High Signal</span>
                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400 shadow-sm"></span> Low Signal</span>
@@ -432,7 +432,7 @@ export default function EvaluatorReviewPage() {
                                {reviewValues[rubric.id]?.rating || 0}
                             </div>
                           </div>
-                          
+
                           {/* Note Field */}
                           {isExpanded ? (
                              <textarea
@@ -487,14 +487,14 @@ export default function EvaluatorReviewPage() {
                  <div className="mb-4">
                    <h2 className="text-lg font-bold tracking-tight text-[var(--foreground)]">AI Assistant</h2>
                  </div>
-                 
+
                  <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-soft)] rounded-xl mb-4 bg-[var(--surface-2)]">
                    <svg className="w-8 h-8 text-[var(--border-strong)] mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                    <p className="text-[13px] font-medium text-[var(--muted)]">Ask the AI questions about the video context.</p>
                  </div>
 
                  <div className="relative shrink-0">
-                    <input 
+                    <input
                       disabled
                       placeholder="Ask 'Why did you score Technical Depth low?'"
                       className="w-full input-base px-4 py-3 rounded-xl text-[13.5px] pr-12 cursor-not-allowed opacity-70 shadow-sm"

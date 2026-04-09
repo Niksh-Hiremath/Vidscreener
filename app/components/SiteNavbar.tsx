@@ -7,7 +7,7 @@ import type { SessionUser } from "../lib/session";
 export default function SiteNavbar({ user }: { user: SessionUser }) {
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur">
-      <div className="mx-auto max-w-6xl px-6 py-3.5 flex items-center justify-between gap-4">
+      <div className="mx-6 px-6 py-3.5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <BrandLogo href="/" iconSize="sm" />
         </div>
