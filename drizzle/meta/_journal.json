@@ -29,6 +29,76 @@
       "when": 1773727146390,
       "tag": "0003_redundant_goblin_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1774000000000,
+      "tag": "0004_projects_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1774000000001,
+      "tag": "0005_project_admin_module",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1774000000002,
+      "tag": "0006_form_attachments_and_submissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1774000000003,
+      "tag": "0007_submission_attachment_field_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1774000000004,
+      "tag": "0008_video_assignment_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1774000000005,
+      "tag": "0009_video_reviews",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1774000000006,
+      "tag": "0010_fix_projects_timestamp_default",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1774000000007,
+      "tag": "0011_submitter_form_shares",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1774000000008,
+      "tag": "0012_password_reset_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1774000000009,
+      "tag": "0013_bulk_upload_fields",
+      "breakpoints": true
     }
   ]
 }

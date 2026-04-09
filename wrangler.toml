@@ -1,7 +1,7 @@
 name = "vidscreener"
 main = "wrangler/index.ts"
 compatibility_date = "2026-03-12"
-account_id = "78227b31bb029c09f05fe99b4d9b77cf"
+account_id = "0080231b1e0c9b9fae7626628703ca8a"
 
 [[d1_databases]]
 binding = "DB"

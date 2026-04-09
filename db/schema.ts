@@ -93,6 +93,8 @@ export const projectFormSubmissions = sqliteTable("project_form_submissions", {
   projectId: integer("project_id").notNull().references(() => projects.id),
   submitterUserId: integer("submitter_user_id").notNull().references(() => users.id),
   fieldsJson: text("fields_json").notNull().default("{}"),
+  externalId: text("external_id"),
+  source: text("source").notNull().default("manual"),
   submittedAt: text("submitted_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
