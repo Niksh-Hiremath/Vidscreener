@@ -54,6 +54,7 @@ import {
   handleSubmitterSubmitForm,
   handleSubmitterExplore,
 } from "./routes";
+import { handleAiAnalyzeVideo, handleAiChat, handleAiStatus } from "./routes-ai";
 
 export default {
   async fetch(req: Request, env: Env) {
@@ -312,6 +313,20 @@ export default {
     const getFormSharesMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/shares$/);
     if (getFormSharesMatch && req.method === "GET") {
       return handleGetFormShares(req, env, db, Number(getFormSharesMatch[1]));
+    }
+
+    // AI endpoints
+    if (url.pathname === "/api/ai/analyze-video" && req.method === "POST") {
+      return handleAiAnalyzeVideo(req, env, db);
+    }
+
+    if (url.pathname === "/api/ai/chat" && req.method === "POST") {
+      return handleAiChat(req, env, db);
+    }
+
+    const aiStatusMatch = url.pathname.match(/^\/api\/ai\/status\/(\d+)$/);
+    if (aiStatusMatch && req.method === "GET") {
+      return handleAiStatus(req, env, db, Number(aiStatusMatch[1]));
     }
 
     // Default: Not found
