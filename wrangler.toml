@@ -12,7 +12,3 @@ migrations_dir = "drizzle"
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "vidscreener"
-
-[vars]
-CLOUDFLARE_ACCOUNT_ID = "0080231b1e0c9b9fae7626628703ca8a"
-R2_PUBLIC_DOMAIN = "r2.dev"
